@@ -18,6 +18,10 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['Inter', 'sans-serif'],
+				heading: ['Poppins', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -51,6 +55,13 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				pythronix: {
+					blue: '#0EA5E9',
+					'light-blue': '#38BDF8',
+					'dark-blue': '#0284C7',
+					gray: '#F1F0FB',
+					'dark-gray': '#8E9196',
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
