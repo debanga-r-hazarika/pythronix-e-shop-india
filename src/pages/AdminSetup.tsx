@@ -15,14 +15,14 @@ export default function AdminSetup() {
     e.preventDefault();
     
     try {
-      // Sign up the admin user
+      // Sign up the admin user with explicit admin role
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
           data: {
             full_name: 'Admin User',
-            role: 'admin'
+            role: 'admin' // Explicitly set the admin role
           }
         }
       });
@@ -31,6 +31,16 @@ export default function AdminSetup() {
 
       // Check if user was created successfully
       if (data.user) {
+        // Create a user role entry to ensure admin access
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ 
+            user_id: data.user.id, 
+            role: 'admin' 
+          });
+
+        if (roleError) throw roleError;
+
         toast.success('Admin user created successfully!');
         navigate('/admin');
       }
