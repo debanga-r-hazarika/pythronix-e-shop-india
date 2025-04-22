@@ -22,7 +22,7 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [price, setPrice] = useState(product?.price || "");
   const [originalPrice, setOriginalPrice] = useState(product?.original_price || "");
   const [stock, setStock] = useState(product?.stock || 0);
-  const [categoryId, setCategoryId] = useState(product?.category_id || "");
+  const [categoryId, setCategoryId] = useState(product?.category_id || "null");
   const [featured, setFeatured] = useState(product?.featured || false);
   const [isNew, setIsNew] = useState(product?.is_new || false);
   const [onSale, setOnSale] = useState(product?.on_sale || false);
@@ -68,7 +68,7 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         price: parseFloat(price),
         original_price: originalPrice ? parseFloat(originalPrice) : null,
         stock: parseInt(stock.toString()),
-        category_id: categoryId || null,
+        category_id: categoryId === "null" ? null : categoryId,
         featured,
         is_new: isNew,
         on_sale: onSale,
@@ -200,7 +200,7 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="null">None</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
