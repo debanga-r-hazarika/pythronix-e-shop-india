@@ -15,7 +15,6 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminSetup from "./pages/AdminSetup"; // New import
 
 const queryClient = new QueryClient();
 
@@ -36,7 +35,6 @@ const App = () => (
             <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/banners" element={<AdminBanners />} />
             <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin-setup" element={<AdminSetup />} /> {/* New route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
