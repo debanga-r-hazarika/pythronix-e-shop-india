@@ -16,9 +16,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default function AdminBanners() {
   const { user } = useAuth();
@@ -40,11 +39,17 @@ export default function AdminBanners() {
       try {
         setLoading(true);
         
-        // Check if user is admin
-        const { data: adminCheck, error: adminError } = await supabase.rpc('is_admin', { user_id: user.id });
+        // Check if user is admin directly from user_roles table
+        const { data: adminRole, error: adminError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
         if (adminError) throw adminError;
         
-        if (!adminCheck) {
+        if (!adminRole) {
           toast.error("You don't have permission to access this page");
           navigate("/");
           return;

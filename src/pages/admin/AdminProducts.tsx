@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -31,11 +31,17 @@ export default function AdminProducts() {
       try {
         setLoading(true);
         
-        // Check if user is admin
-        const { data: adminCheck, error: adminError } = await supabase.rpc('is_admin', { user_id: user.id });
+        // Check if user is admin directly from user_roles table
+        const { data: adminRole, error: adminError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
         if (adminError) throw adminError;
         
-        if (!adminCheck) {
+        if (!adminRole) {
           toast.error("You don't have permission to access this page");
           navigate("/");
           return;

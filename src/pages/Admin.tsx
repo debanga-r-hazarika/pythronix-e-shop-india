@@ -20,7 +20,7 @@ export default function Admin() {
       }
 
       try {
-        // Get admin role from user_roles table directly
+        // Check if user is admin directly from user_roles table
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
