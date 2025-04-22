@@ -15,7 +15,9 @@ export default function Auth() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    fullName: ""
+    fullName: "",
+    phone: "",
+    birthday: ""
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,7 +29,11 @@ export default function Auth() {
         await signIn(formData.email, formData.password);
         toast.success("Successfully signed in!");
       } else {
-        await signUp(formData.email, formData.password, { full_name: formData.fullName });
+        await signUp(formData.email, formData.password, {
+          full_name: formData.fullName,
+          phone: formData.phone,
+          birthday: formData.birthday
+        });
         toast.success("Registration successful! Please check your email to verify your account.");
       }
       navigate("/");
@@ -49,16 +55,38 @@ export default function Auth() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             {!isLogin && (
-              <div>
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    required
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="birthday">Birthday</Label>
+                  <Input
+                    id="birthday"
+                    type="date"
+                    required
+                    value={formData.birthday}
+                    onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                  />
+                </div>
+              </>
             )}
             <div>
               <Label htmlFor="email">Email address</Label>

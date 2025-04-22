@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import SavedAddresses from "./SavedAddresses";
+import ChangePassword from "./ChangePassword";
+import { format } from "date-fns";
 
 export default function ProfileSection() {
   const { user } = useAuth();
@@ -14,6 +17,7 @@ export default function ProfileSection() {
     full_name: "",
     phone: "",
     address: "",
+    birthday: "",
   });
 
   const { data: profile, refetch } = useQuery({
@@ -31,13 +35,13 @@ export default function ProfileSection() {
     enabled: !!user?.id,
   });
 
-  // Update form data when profile is loaded
   useEffect(() => {
     if (profile) {
       setFormData({
         full_name: profile.full_name || "",
         phone: profile.phone || "",
         address: profile.address || "",
+        birthday: profile.birthday ? format(new Date(profile.birthday), "yyyy-MM-dd") : "",
       });
     }
   }, [profile]);
@@ -61,51 +65,66 @@ export default function ProfileSection() {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">Profile Information</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="full_name" className="text-sm font-medium">Full Name</label>
-          <Input
-            id="full_name"
-            value={formData.full_name}
-            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-            disabled={!isEditing}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="phone" className="text-sm font-medium">Phone</label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            disabled={!isEditing}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="address" className="text-sm font-medium">Address</label>
-          <Input
-            id="address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            disabled={!isEditing}
-          />
-        </div>
-        <div className="flex justify-end space-x-2">
-          {!isEditing ? (
-            <Button type="button" onClick={() => setIsEditing(true)}>
-              Edit Profile
-            </Button>
-          ) : (
-            <>
-              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                Cancel
+    <div className="space-y-10">
+      <div className="space-y-6">
+        <h2 className="text-2xl font-semibold">Profile Information</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="full_name" className="text-sm font-medium">Full Name</label>
+            <Input
+              id="full_name"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              disabled={!isEditing}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="phone" className="text-sm font-medium">Phone</label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              disabled={!isEditing}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="birthday" className="text-sm font-medium">Birthday</label>
+            <Input
+              id="birthday"
+              type="date"
+              value={formData.birthday}
+              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+              disabled={!isEditing}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="address" className="text-sm font-medium">Address</label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              disabled={!isEditing}
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            {!isEditing ? (
+              <Button type="button" onClick={() => setIsEditing(true)}>
+                Edit Profile
               </Button>
-              <Button type="submit">Save Changes</Button>
-            </>
-          )}
-        </div>
-      </form>
+            ) : (
+              <>
+                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </>
+            )}
+          </div>
+        </form>
+      </div>
+      
+      <ChangePassword />
+      <SavedAddresses />
     </div>
   );
 }

@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          birthday: string | null
           created_at: string
           full_name: string | null
           id: string
@@ -88,6 +89,7 @@ export type Database = {
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           full_name?: string | null
           id: string
@@ -98,12 +100,49 @@ export type Database = {
         Update: {
           address?: string | null
           avatar_url?: string | null
+          birthday?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
           phone?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      saved_addresses: {
+        Row: {
+          address_line: string
+          city: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          postal_code: string
+          state: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          address_line: string
+          city: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          postal_code: string
+          state: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          address_line?: string
+          city?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          postal_code?: string
+          state?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
