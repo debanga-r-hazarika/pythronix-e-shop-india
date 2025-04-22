@@ -18,6 +18,23 @@ import {
 } from "@/components/ui/accordion";
 import { Filter, X } from "lucide-react";
 
+// Define a type for our filter props
+interface FilterProps {
+  categories: any[];
+  categoryId: string | null;
+  setCategoryId: (id: string | null) => void;
+  priceRange: [number, number];
+  setPriceRange: (range: [number, number]) => void;
+  inStock: boolean | null;
+  setInStock: (inStock: boolean | null) => void;
+  maxPrice: number;
+  sortBy?: string;
+  setSortBy?: (sortBy: string) => void;
+  sortOrder?: string;
+  setSortOrder?: (sortOrder: string) => void;
+  clearFilters: () => void;
+}
+
 export default function Products() {
   // Filter states
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -140,10 +157,6 @@ export default function Products() {
                   inStock={inStock}
                   setInStock={setInStock}
                   maxPrice={maxPrice}
-                  sortBy={sortBy}
-                  setSortBy={setSortBy}
-                  sortOrder={sortOrder}
-                  setSortOrder={setSortOrder}
                   clearFilters={clearFilters}
                 />
               </div>
@@ -224,7 +237,7 @@ const MobileFilters = ({
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
   inStock, setInStock, maxPrice, sortBy, setSortBy,
   sortOrder, setSortOrder, clearFilters
-}) => {
+}: FilterProps) => {
   return (
     <div className="space-y-6">
       <Accordion type="single" collapsible className="w-full">
@@ -268,7 +281,7 @@ const MobileFilters = ({
                   min={0}
                   max={maxPrice}
                   step={1}
-                  onValueChange={setPriceRange}
+                  onValueChange={(value) => setPriceRange(value as [number, number])}
                   className="mt-6"
                 />
               </div>
@@ -334,7 +347,7 @@ const MobileFilters = ({
 const DesktopFilters = ({ 
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
   inStock, setInStock, maxPrice, clearFilters
-}) => {
+}: FilterProps) => {
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -374,7 +387,7 @@ const DesktopFilters = ({
               min={0}
               max={maxPrice}
               step={1}
-              onValueChange={setPriceRange}
+              onValueChange={(value) => setPriceRange(value as [number, number])}
               className="mt-6"
             />
           </div>

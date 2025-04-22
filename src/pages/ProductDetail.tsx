@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProductById } from "@/lib/api/supabase";
+import { fetchProductById, addToWishlist, removeFromWishlist } from "@/lib/api/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
@@ -46,8 +46,7 @@ const ProductDetail = () => {
 
     try {
       setIsAddingToWishlist(true);
-      // Here we would add the logic to add/remove from wishlist
-      // For now we'll just show a toast
+      await addToWishlist(user.id, id);
       toast.success("Added to wishlist");
     } catch (err) {
       toast.error("Failed to add to wishlist");
@@ -66,9 +65,14 @@ const ProductDetail = () => {
     }).format(price);
   };
   
-  // Parse specifications and package includes from JSON strings
-  const specifications = product?.specifications ? JSON.parse(product.specifications) : {};
-  const packageIncludes = product?.package_includes ? JSON.parse(product.package_includes) : [];
+  // Parse specifications and package includes from JSON
+  const specifications = product?.specifications ? 
+    (typeof product.specifications === 'string' ? 
+      JSON.parse(product.specifications) : product.specifications) : {};
+      
+  const packageIncludes = product?.package_includes ? 
+    (typeof product.package_includes === 'string' ? 
+      JSON.parse(product.package_includes) : product.package_includes) : [];
 
   // Show loading state
   if (isLoading) {

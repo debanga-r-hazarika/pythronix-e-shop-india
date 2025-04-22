@@ -9,7 +9,14 @@ export async function fetchProducts(filters = {}) {
     in_stock = null,
     sort_by = "created_at",
     sort_order = "desc"
-  } = filters;
+  } = filters as {
+    category_id?: string | null;
+    min_price?: number | null;
+    max_price?: number | null;
+    in_stock?: boolean | null;
+    sort_by?: string;
+    sort_order?: "asc" | "desc";
+  };
   
   let query = supabase
     .from('products')
@@ -82,6 +89,7 @@ export async function fetchCategories() {
 }
 
 export async function addToWishlist(userId, productId) {
+  // Use the correct table name and structure
   const { data, error } = await supabase
     .from('wishlists')
     .insert([
@@ -93,13 +101,13 @@ export async function addToWishlist(userId, productId) {
 }
 
 export async function removeFromWishlist(userId, productId) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('wishlists')
     .delete()
     .match({ user_id: userId, product_id: productId });
     
   if (error) throw error;
-  return data;
+  return true;
 }
 
 export async function fetchUserWishlist(userId) {
@@ -107,7 +115,7 @@ export async function fetchUserWishlist(userId) {
     .from('wishlists')
     .select(`
       product_id,
-      products(*)
+      product:products(*)
     `)
     .eq('user_id', userId);
     
