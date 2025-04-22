@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +30,6 @@ export default function AdminProducts() {
       try {
         setLoading(true);
         
-        // Check if user is admin directly from user_roles table
         const { data: adminRole, error: adminError } = await supabase
           .from('user_roles')
           .select('role')
@@ -49,15 +47,17 @@ export default function AdminProducts() {
         
         setIsAdmin(true);
         
-        // Load products
         const { data: productsData, error: productsError } = await supabase
           .from('products')
-          .select('*, categories(name)')
+          .select(`
+            *,
+            category:categories(*),
+            secondary_categories:product_categories(category:categories(*))
+          `)
           .order('created_at', { ascending: false });
           
         if (productsError) throw productsError;
         
-        // Load categories for the form
         const { data: categoriesData, error: categoriesError } = await supabase
           .from('categories')
           .select('id, name')
@@ -155,32 +155,52 @@ export default function AdminProducts() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead>Categories</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Featured</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>${product.price}</TableCell>
-                  <TableCell>{product.categories?.name || "Uncategorized"}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
-                  <TableCell>{product.featured ? "Yes" : "No"}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => handleEdit(product)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="icon" className="text-destructive" onClick={() => handleDelete(product.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {products.map((product) => {
+                const allCategories = [];
+                
+                if (product.category) {
+                  allCategories.push(product.category.name);
+                }
+                
+                if (product.secondary_categories && Array.isArray(product.secondary_categories)) {
+                  product.secondary_categories.forEach(sc => {
+                    if (sc.category && sc.category.name) {
+                      allCategories.push(sc.category.name);
+                    }
+                  });
+                }
+                
+                const categoriesDisplay = allCategories.length > 0 
+                  ? allCategories.join(", ") 
+                  : "Uncategorized";
+                
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>${product.price}</TableCell>
+                    <TableCell>{categoriesDisplay}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>{product.featured ? "Yes" : "No"}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="icon" onClick={() => handleEdit(product)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="text-destructive" onClick={() => handleDelete(product.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

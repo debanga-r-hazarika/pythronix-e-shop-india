@@ -25,8 +25,9 @@ export async function fetchProducts(filters = {}) {
       secondary_categories:product_categories(category:categories(*))
     `);
   
-  // Apply category filter (including secondary categories)
+  // Apply category filter correctly for both primary and secondary categories
   if (category_id) {
+    // Using textual format for the OR condition to ensure it works correctly
     query = query.or(`category_id.eq.${category_id},secondary_categories.category_id.eq.${category_id}`);
   }
   
@@ -49,7 +50,11 @@ export async function fetchProducts(filters = {}) {
 
   const { data, error } = await query;
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching products:", error);
+    throw error;
+  }
+  
   return data;
 }
 

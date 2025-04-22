@@ -23,11 +23,24 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [price, setPrice] = useState(product?.price || "");
   const [originalPrice, setOriginalPrice] = useState(product?.original_price || "");
   const [stock, setStock] = useState(product?.stock || 0);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    product?.category_id 
-      ? [product.category_id, ...(product.secondary_categories?.map(sc => sc.category.id) || [])] 
-      : []
-  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    if (!product) return [];
+    
+    const allCategories = [];
+    if (product.category_id) {
+      allCategories.push(product.category_id);
+    }
+    
+    if (product.secondary_categories && Array.isArray(product.secondary_categories)) {
+      product.secondary_categories.forEach(sc => {
+        if (sc.category && sc.category.id) {
+          allCategories.push(sc.category.id);
+        }
+      });
+    }
+    
+    return allCategories;
+  });
   const [featured, setFeatured] = useState(product?.featured || false);
   const [isNew, setIsNew] = useState(product?.is_new || false);
   const [onSale, setOnSale] = useState(product?.on_sale || false);
@@ -152,11 +165,16 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         toast.success("Product created successfully");
       }
       
-      if (selectedCategories.length > 1) {
-        await supabase
+      if (selectedCategories.length > 0) {
+        const { error: deleteError } = await supabase
           .from('product_categories')
           .delete()
           .eq('product_id', productId);
+          
+        if (deleteError) {
+          console.error("Error deleting existing secondary categories:", deleteError);
+          toast.error("Error updating secondary categories");
+        }
         
         const secondaryCategoriesData = selectedCategories.slice(1).map(categoryId => ({
           product_id: productId,
