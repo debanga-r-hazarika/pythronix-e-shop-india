@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { UploadCloud, Trash2, Plus, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProductFormProps {
   product?: any;
@@ -22,12 +24,21 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [price, setPrice] = useState(product?.price || "");
   const [originalPrice, setOriginalPrice] = useState(product?.original_price || "");
   const [stock, setStock] = useState(product?.stock || 0);
-  const [categoryId, setCategoryId] = useState(product?.category_id || "null");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    product?.category_id ? [product.category_id] : []
+  );
   const [featured, setFeatured] = useState(product?.featured || false);
   const [isNew, setIsNew] = useState(product?.is_new || false);
   const [onSale, setOnSale] = useState(product?.on_sale || false);
-  const [image, setImage] = useState<File | null>(null);
+  const [mainImage, setMainImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>(product?.image_url || "");
+  
+  // Multiple images support
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(
+    product?.additional_images ? JSON.parse(product.additional_images) : []
+  );
+  
   const [loading, setLoading] = useState(false);
   const [specifications, setSpecifications] = useState<{key: string, value: string}[]>(
     product?.specifications ? Object.entries(JSON.parse(product.specifications)).map(
@@ -50,15 +61,16 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
 
     try {
       let updatedImageUrl = imageUrl;
+      let updatedAdditionalImages = [...additionalImageUrls];
       
-      // Upload image if selected
-      if (image) {
-        const fileExt = image.name.split('.').pop();
+      // Upload main image if selected
+      if (mainImage) {
+        const fileExt = mainImage.name.split('.').pop();
         const filePath = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('product-images')
-          .upload(filePath, image);
+          .upload(filePath, mainImage);
           
         if (uploadError) throw uploadError;
         
@@ -68,6 +80,27 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           .getPublicUrl(filePath);
           
         updatedImageUrl = publicUrl;
+      }
+      
+      // Upload additional images if selected
+      if (additionalImages.length > 0) {
+        for (const image of additionalImages) {
+          const fileExt = image.name.split('.').pop();
+          const filePath = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(filePath, image);
+            
+          if (uploadError) throw uploadError;
+          
+          // Get the public URL for the uploaded image
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+            
+          updatedAdditionalImages.push(publicUrl);
+        }
       }
       
       // Convert specifications array to object
@@ -81,25 +114,31 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
       // Filter out empty package includes
       const filteredPackageIncludes = packageIncludes.filter(item => item.trim() !== '');
       
+      // Get the primary category (first one in the list) or null if none selected
+      const primaryCategoryId = selectedCategories.length > 0 ? selectedCategories[0] : null;
+      
       const productData = {
         name,
         description,
         price: parseFloat(price),
         original_price: originalPrice ? parseFloat(originalPrice) : null,
         stock: parseInt(stock.toString()),
-        category_id: categoryId === "null" ? null : categoryId,
+        category_id: primaryCategoryId,
         featured,
         is_new: isNew,
         on_sale: onSale,
         image_url: updatedImageUrl || null,
+        additional_images: updatedAdditionalImages.length > 0 ? JSON.stringify(updatedAdditionalImages) : null,
         specifications: Object.keys(specsObj).length > 0 ? JSON.stringify(specsObj) : null,
         package_includes: filteredPackageIncludes.length > 0 ? JSON.stringify(filteredPackageIncludes) : null,
       };
       
       let result;
+      let productId;
       
       if (product) {
         // Update existing product
+        productId = product.id;
         const { data, error } = await supabase
           .from('products')
           .update(productData)
@@ -118,7 +157,34 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           
         if (error) throw error;
         result = data[0];
+        productId = result.id;
         toast.success("Product created successfully");
+      }
+      
+      // Handle product categories (all except the primary which is already stored in category_id)
+      if (selectedCategories.length > 1) {
+        // First remove existing product_categories for this product (except primary)
+        await supabase
+          .from('product_categories')
+          .delete()
+          .eq('product_id', productId);
+        
+        // Then insert new relationships for secondary categories
+        const productCategoriesData = selectedCategories.slice(1).map(categoryId => ({
+          product_id: productId,
+          category_id: categoryId
+        }));
+        
+        if (productCategoriesData.length > 0) {
+          const { error: categoryError } = await supabase
+            .from('product_categories')
+            .insert(productCategoriesData);
+            
+          if (categoryError) {
+            console.error("Error saving secondary categories:", categoryError);
+            toast.error("Product saved but there was an error with secondary categories");
+          }
+        }
       }
       
       onSaved(result, !product);
@@ -130,15 +196,32 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
+      setMainImage(e.target.files[0]);
+    }
+  };
+  
+  const handleAdditionalImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setAdditionalImages(prev => [...prev, ...newFiles]);
     }
   };
 
-  const handleRemoveImage = () => {
-    setImage(null);
+  const handleRemoveMainImage = () => {
+    setMainImage(null);
     setImageUrl("");
+  };
+  
+  const handleRemoveAdditionalImage = (index: number, isUploaded: boolean) => {
+    if (isUploaded) {
+      // Remove uploaded image URL
+      setAdditionalImageUrls(prev => prev.filter((_, i) => i !== index));
+    } else {
+      // Remove file from additionalImages state
+      setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const addSpecification = () => {
@@ -167,6 +250,16 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
     const newItems = [...packageIncludes];
     newItems[index] = value;
     setPackageIncludes(newItems);
+  };
+  
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    setSelectedCategories(prev => {
+      if (checked) {
+        return [...prev, categoryId];
+      } else {
+        return prev.filter(id => id !== categoryId);
+      }
+    });
   };
 
   return (
@@ -240,23 +333,29 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select 
-              value={categoryId} 
-              onValueChange={setCategoryId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="null">None</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
+            <Label>Categories (Select one or more)</Label>
+            <ScrollArea className="h-40 border rounded-md p-2">
+              {categories.map((category) => (
+                <div key={category.id} className="flex items-center space-x-2 py-1">
+                  <Checkbox 
+                    id={`category-${category.id}`}
+                    checked={selectedCategories.includes(category.id)}
+                    onCheckedChange={(checked) => 
+                      handleCategoryChange(category.id, checked as boolean)
+                    }
+                  />
+                  <Label 
+                    htmlFor={`category-${category.id}`}
+                    className="text-sm font-normal"
+                  >
                     {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </Label>
+                </div>
+              ))}
+            </ScrollArea>
+            {selectedCategories.length === 0 && (
+              <p className="text-xs text-red-500">Please select at least one category</p>
+            )}
           </div>
           
           <div className="space-y-4 mt-6">
@@ -290,12 +389,13 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         </div>
       </div>
 
+      {/* Main Product Image */}
       <div className="space-y-2">
-        <Label>Product Image</Label>
-        {(imageUrl || image) ? (
+        <Label>Main Product Image</Label>
+        {(imageUrl || mainImage) ? (
           <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden">
             <img 
-              src={image ? URL.createObjectURL(image) : imageUrl} 
+              src={mainImage ? URL.createObjectURL(mainImage) : imageUrl} 
               alt="Product preview" 
               className="w-full h-full object-contain"
             />
@@ -304,7 +404,7 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
               variant="destructive" 
               size="icon" 
               className="absolute top-2 right-2"
-              onClick={handleRemoveImage}
+              onClick={handleRemoveMainImage}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -313,17 +413,101 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
             <Input 
               type="file" 
-              id="image" 
+              id="mainImage" 
               className="hidden" 
-              onChange={handleImageChange} 
+              onChange={handleMainImageChange} 
               accept="image/*"
             />
-            <Label htmlFor="image" className="cursor-pointer flex flex-col items-center">
+            <Label htmlFor="mainImage" className="cursor-pointer flex flex-col items-center">
               <UploadCloud className="h-8 w-8 text-gray-400" />
-              <span className="mt-2 text-sm text-gray-600">Click to upload an image</span>
+              <span className="mt-2 text-sm text-gray-600">Click to upload main image</span>
             </Label>
           </div>
         )}
+      </div>
+
+      {/* Additional Images */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Additional Images (up to 5 total)</Label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={() => document.getElementById('additionalImages')?.click()}
+            disabled={(additionalImages.length + additionalImageUrls.length) >= 5}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Images
+          </Button>
+          <Input 
+            type="file" 
+            id="additionalImages" 
+            className="hidden" 
+            onChange={handleAdditionalImagesChange} 
+            accept="image/*"
+            multiple
+            disabled={(additionalImages.length + additionalImageUrls.length) >= 5}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Display existing uploaded images */}
+          {additionalImageUrls.map((url, index) => (
+            <div key={`uploaded-${index}`} className="relative aspect-square bg-muted rounded-md overflow-hidden border">
+              <img 
+                src={url} 
+                alt={`Additional image ${index + 1}`}
+                className="w-full h-full object-contain"
+              />
+              <Button 
+                type="button" 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-1 right-1 h-6 w-6"
+                onClick={() => handleRemoveAdditionalImage(index, true)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          
+          {/* Display newly selected images */}
+          {additionalImages.map((file, index) => (
+            <div key={`new-${index}`} className="relative aspect-square bg-muted rounded-md overflow-hidden border">
+              <img 
+                src={URL.createObjectURL(file)}
+                alt={`New image ${index + 1}`}
+                className="w-full h-full object-contain"
+              />
+              <Button 
+                type="button" 
+                variant="destructive" 
+                size="icon" 
+                className="absolute top-1 right-1 h-6 w-6"
+                onClick={() => handleRemoveAdditionalImage(index, false)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+          
+          {/* Empty slots */}
+          {Array.from({ length: Math.max(0, 5 - additionalImageUrls.length - additionalImages.length) }).map((_, index) => (
+            <div 
+              key={`empty-${index}`} 
+              className="aspect-square border-2 border-dashed border-gray-200 rounded-md flex items-center justify-center"
+              onClick={() => document.getElementById('additionalImages')?.click()}
+            >
+              <div className="text-gray-400 text-center cursor-pointer">
+                <Plus className="h-6 w-6 mx-auto" />
+                <span className="text-xs">Add Image</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {5 - additionalImageUrls.length - additionalImages.length} slots remaining
+        </p>
       </div>
 
       {/* Package Includes Section */}

@@ -21,7 +21,9 @@ import {
   CreditCard,
   Truck,
   ArrowLeft,
-  Heart
+  Heart,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 const ProductDetail = () => {
@@ -29,6 +31,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const { user } = useAuth();
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   // Fetch product details
   const { data: product, isLoading, error } = useQuery({
@@ -73,6 +76,23 @@ const ProductDetail = () => {
   const packageIncludes = product?.package_includes ? 
     (typeof product.package_includes === 'string' ? 
       JSON.parse(product.package_includes) : product.package_includes) : [];
+      
+  // Parse additional images from JSON
+  const additionalImages = product?.additional_images ? 
+    (typeof product.additional_images === 'string' ? 
+      JSON.parse(product.additional_images) : product.additional_images) : [];
+      
+  // Combine main image and additional images
+  const allImages = product ? [product.image_url, ...additionalImages].filter(Boolean) : [];
+
+  // Navigate through images
+  const nextImage = () => {
+    setSelectedImageIndex((prev) => (prev + 1) % allImages.length);
+  };
+  
+  const prevImage = () => {
+    setSelectedImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
 
   // Show loading state
   if (isLoading) {
@@ -137,13 +157,58 @@ const ProductDetail = () => {
         
         {/* Product Details */}
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          {/* Product Image */}
-          <div className="aspect-square overflow-hidden rounded-lg border bg-white p-4">
-            <img
-              src={product.image_url || "/placeholder.svg"}
-              alt={product.name}
-              className="h-full w-full object-contain"
-            />
+          {/* Product Image Gallery */}
+          <div>
+            {/* Main Image */}
+            <div className="relative aspect-square overflow-hidden rounded-lg border bg-white">
+              <img
+                src={allImages[selectedImageIndex] || "/placeholder.svg"}
+                alt={product.name}
+                className="h-full w-full object-contain"
+              />
+              
+              {allImages.length > 1 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/70 hover:bg-white"
+                    onClick={prevImage}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/70 hover:bg-white"
+                    onClick={nextImage}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+            
+            {/* Thumbnails */}
+            {allImages.length > 1 && (
+              <div className="mt-4 grid grid-cols-5 gap-2">
+                {allImages.map((img, index) => (
+                  <div
+                    key={index}
+                    className={`aspect-square cursor-pointer overflow-hidden rounded-md border ${
+                      selectedImageIndex === index ? "ring-2 ring-pythronix-blue" : ""
+                    }`}
+                    onClick={() => setSelectedImageIndex(index)}
+                  >
+                    <img
+                      src={img || "/placeholder.svg"}
+                      alt={`${product.name} - view ${index + 1}`}
+                      className="h-full w-full object-cover object-center"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           
           {/* Product Info */}

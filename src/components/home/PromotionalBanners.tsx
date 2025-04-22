@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchBanners } from "@/lib/api/supabase";
@@ -28,6 +27,16 @@ const PromotionalBanners = () => {
     );
   }
 
+  const prepareBannerLink = (link: string) => {
+    if (link.startsWith('http://') || link.startsWith('https://')) {
+      return link;
+    }
+    if (link.startsWith('/')) {
+      return link;
+    }
+    return `/${link}`;
+  };
+
   return (
     <section className="py-12 bg-pythronix-gray">
       <div className="container">
@@ -45,11 +54,21 @@ const PromotionalBanners = () => {
                   <p className="mb-6 text-gray-600">
                     {banner.subtitle}
                   </p>
-                  <Button asChild>
-                    <Link to={banner.link}>
-                      {banner.button_text}
-                    </Link>
-                  </Button>
+                  {banner.link && (
+                    banner.link.startsWith('http://') || banner.link.startsWith('https://') ? (
+                      <Button asChild>
+                        <a href={banner.link} target="_blank" rel="noopener noreferrer">
+                          {banner.button_text || 'Learn More'}
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button asChild>
+                        <Link to={prepareBannerLink(banner.link)}>
+                          {banner.button_text || 'Learn More'}
+                        </Link>
+                      </Button>
+                    )
+                  )}
                 </div>
                 <div className="aspect-[4/3] w-full md:w-2/5">
                   <img

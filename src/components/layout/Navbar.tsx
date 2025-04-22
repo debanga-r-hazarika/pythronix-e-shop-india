@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { categories } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { fetchCategories } from "@/lib/api/supabase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import { SearchIcon, ShoppingCart, User, Menu, X, LogOut, Settings } from "lucid
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
@@ -23,6 +25,12 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
 
   useEffect(() => {
     async function checkAdminStatus() {
@@ -64,6 +72,14 @@ const Navbar = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setMobileMenuOpen(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-between py-4">
@@ -81,36 +97,53 @@ const Navbar = () => {
             >
               Home
             </Link>
-            <div className="relative group">
-              <button className="flex items-center text-sm font-medium transition-colors hover:text-pythronix-blue">
-                Categories
-              </button>
-              <div className="absolute left-0 top-full hidden w-64 pt-2 group-hover:block z-50">
-                <div className="rounded-md border bg-white shadow-md">
-                  {categories.map((category) => (
-                    <DropdownMenu key={category.id}>
-                      <DropdownMenuTrigger asChild>
-                        <button className="w-full px-4 py-2 text-left text-sm hover:bg-pythronix-gray">
-                          {category.name}
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {category.subcategories?.map((subcategory) => (
-                          <DropdownMenuItem key={subcategory.id}>
-                            <Link
-                              to={`/category/${subcategory.slug}`}
-                              className="w-full"
-                            >
-                              {subcategory.name}
-                            </Link>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ))}
-                </div>
-              </div>
-            </div>
+            
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="text-sm font-medium transition-colors hover:text-pythronix-blue bg-transparent">
+                    Categories
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 w-[600px]">
+                      {categoriesLoading ? (
+                        <div className="col-span-3 text-center py-4">Loading categories...</div>
+                      ) : categories.length === 0 ? (
+                        <div className="col-span-3 text-center py-4">No categories found</div>
+                      ) : (
+                        categories.map((category) => (
+                          <Link
+                            key={category.id}
+                            to={`/products?category=${category.id}`}
+                            className="block p-2 rounded-md hover:bg-muted"
+                          >
+                            <div className="text-sm font-medium">{category.name}</div>
+                            {category.description && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                {category.description.length > 50 
+                                  ? category.description.substring(0, 50) + '...' 
+                                  : category.description
+                                }
+                              </div>
+                            )}
+                          </Link>
+                        ))
+                      )}
+                      
+                      <div className="col-span-3 border-t mt-2 pt-2">
+                        <Link
+                          to="/categories"
+                          className="block p-2 text-center text-sm text-pythronix-blue hover:underline"
+                        >
+                          View All Categories
+                        </Link>
+                      </div>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+            
             <Link
               to="/products"
               className="text-sm font-medium transition-colors hover:text-pythronix-blue"
@@ -127,13 +160,17 @@ const Navbar = () => {
         )}
 
         {!isMobile && (
-          <div className="hidden md:flex md:w-1/3 lg:w-1/4 relative">
+          <form onSubmit={handleSearch} className="hidden md:flex md:w-1/3 lg:w-1/4 relative">
             <Input 
               placeholder="Search products..." 
               className="pl-8 pr-4"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <SearchIcon className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+            <button type="submit" className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground">
+              <SearchIcon className="h-4 w-4" />
+            </button>
+          </form>
         )}
 
         <div className="flex items-center space-x-4">
@@ -152,9 +189,16 @@ const Navbar = () => {
             </Button>
           )}
 
-          <Button variant="ghost" size="icon" aria-label="Search">
-            <SearchIcon className="h-5 w-5" />
-          </Button>
+          {isMobile && (
+            <Button 
+              variant="ghost"
+              size="icon"
+              aria-label="Search"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <SearchIcon className="h-5 w-5" />
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -208,13 +252,17 @@ const Navbar = () => {
 
       {isMobile && mobileMenuOpen && (
         <div className="container pb-4">
-          <div className="relative mb-4">
+          <form onSubmit={handleSearch} className="relative mb-4">
             <Input 
               placeholder="Search products..." 
               className="pl-8 pr-4"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <SearchIcon className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          </div>
+            <button type="submit" className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground">
+              <SearchIcon className="h-4 w-4" />
+            </button>
+          </form>
           <nav className="flex flex-col space-y-4">
             <Link
               to="/"
@@ -226,29 +274,29 @@ const Navbar = () => {
             <div>
               <span className="text-sm font-medium">Categories</span>
               <div className="ml-4 mt-2 flex flex-col space-y-2">
-                {categories.map((category) => (
-                  <div key={category.id}>
+                {categoriesLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading categories...</div>
+                ) : categories.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No categories found</div>
+                ) : (
+                  categories.map((category) => (
                     <Link
-                      to={`/category/${category.slug}`}
+                      key={category.id}
+                      to={`/products?category=${category.id}`}
                       className="text-sm"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {category.name}
                     </Link>
-                    <div className="ml-4 mt-1 flex flex-col space-y-1">
-                      {category.subcategories?.map((subcategory) => (
-                        <Link
-                          key={subcategory.id}
-                          to={`/category/${subcategory.slug}`}
-                          className="text-xs text-muted-foreground"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {subcategory.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
+                <Link
+                  to="/categories"
+                  className="text-sm text-pythronix-blue"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  View All Categories
+                </Link>
               </div>
             </div>
             <Link
@@ -275,20 +323,43 @@ const Navbar = () => {
               </Link>
             )}
             <div className="h-px bg-border" />
-            <Link
-              to="/login"
-              className="text-sm font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Register
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Account
+                </Link>
+                <button
+                  onClick={() => {
+                    handleSignOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-sm font-medium text-left"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/auth"
+                  className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/auth?tab=register"
+                  className="text-sm font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

@@ -27,7 +27,19 @@ export async function fetchProducts(filters = {}) {
   
   // Apply filters
   if (category_id) {
-    query = query.eq('category_id', category_id);
+    // Query for products that have this category as either their primary category
+    // or as a secondary category through product_categories relationship
+    const { data: productIds, error: productIdsError } = await supabase
+      .from('product_categories')
+      .select('product_id')
+      .eq('category_id', category_id);
+    
+    if (!productIdsError && productIds.length > 0) {
+      const secondaryCategoryProductIds = productIds.map(pc => pc.product_id);
+      query = query.or(`category_id.eq.${category_id},id.in.(${secondaryCategoryProductIds.join(',')})`);
+    } else {
+      query = query.eq('category_id', category_id);
+    }
   }
   
   if (min_price !== null) {
@@ -64,6 +76,19 @@ export async function fetchProductById(id) {
     .single();
 
   if (error) throw error;
+  
+  // Get secondary categories for this product
+  const { data: secondaryCategories, error: secondaryCategoriesError } = await supabase
+    .from('product_categories')
+    .select(`
+      category:categories(*)
+    `)
+    .eq('product_id', id);
+  
+  if (!secondaryCategoriesError && secondaryCategories?.length > 0) {
+    data.secondaryCategories = secondaryCategories.map(sc => sc.category);
+  }
+  
   return data;
 }
 
