@@ -27,9 +27,7 @@ export async function fetchProducts(filters = {}) {
   
   // Apply category filter (including secondary categories)
   if (category_id) {
-    query = query.or(
-      `category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`
-    );
+    query = query.or(`category_id.eq.${category_id},secondary_categories.category_id.eq.${category_id}`);
   }
   
   if (min_price !== null) {

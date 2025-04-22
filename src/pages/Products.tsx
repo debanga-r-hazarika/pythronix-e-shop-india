@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { fetchProducts, fetchCategories } from "@/lib/api/supabase";
 import MainLayout from "@/components/layout/MainLayout";
 import ProductCard from "@/components/product/ProductCard";
@@ -36,8 +36,10 @@ interface FilterProps {
 }
 
 export default function Products() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // Filter states
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(searchParams.get('category'));
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState("created_at");
@@ -49,6 +51,19 @@ export default function Products() {
     queryKey: ['categories'],
     queryFn: fetchCategories
   });
+  
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams);
+    
+    if (categoryId) {
+      params.set('category', categoryId);
+    } else {
+      params.delete('category');
+    }
+    
+    setSearchParams(params);
+  }, [categoryId, setSearchParams]);
   
   // Get filtered products
   const { data: products = [], isLoading, refetch } = useQuery({
