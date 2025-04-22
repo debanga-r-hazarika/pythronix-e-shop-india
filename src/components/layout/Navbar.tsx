@@ -1,8 +1,8 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { categories } from "@/lib/data";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,28 +11,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { SearchIcon, ShoppingCart, User, Menu, X } from "lucide-react";
+import { SearchIcon, ShoppingCart, User, Menu, X, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const isMobile = useIsMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Successfully signed out");
+      navigate("/");
+    } catch (error) {
+      toast.error("Error signing out");
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-between py-4">
-        {/* Logo */}
         <div className="flex items-center">
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-2xl font-bold font-heading text-pythronix-blue">Pythronix</span>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         {!isMobile && (
           <nav className="mx-6 flex items-center space-x-4 lg:space-x-6">
             <Link
@@ -86,7 +97,6 @@ const Navbar = () => {
           </nav>
         )}
 
-        {/* Search Bar */}
         {!isMobile && (
           <div className="hidden md:flex md:w-1/3 lg:w-1/4 relative">
             <Input 
@@ -97,7 +107,6 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* Right Side Icons */}
         <div className="flex items-center space-x-4">
           {isMobile && (
             <Button
@@ -125,16 +134,25 @@ const Navbar = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Link to="/login" className="w-full">Login</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link to="/register" className="w-full">Register</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/dashboard" className="w-full">Dashboard</Link>
-              </DropdownMenuItem>
+              {user ? (
+                <>
+                  <DropdownMenuItem>
+                    <Link to="/profile" className="w-full">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link to="/dashboard" className="w-full">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem>
+                  <Link to="/auth" className="w-full">Sign In</Link>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -151,7 +169,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMobile && mobileMenuOpen && (
         <div className="container pb-4">
           <div className="relative mb-4">
