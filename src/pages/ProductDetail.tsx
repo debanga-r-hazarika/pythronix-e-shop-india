@@ -66,14 +66,14 @@ const ProductDetail = () => {
   
   const specifications = product?.specifications ? 
     (typeof product.specifications === 'string' ? 
-      JSON.parse(product.specifications) : product.specifications) : {};
+      JSON.parse(product.specifications as string) : product.specifications) : {};
       
   const packageIncludes = product?.package_includes ? 
     (typeof product.package_includes === 'string' ? 
-      JSON.parse(product.package_includes) : product.package_includes) : [];
+      JSON.parse(product.package_includes as string) : product.package_includes) : [];
       
   const allImages = product 
-    ? [product.image_url, ...(JSON.parse(product.additional_images || '[]') || [])].filter(Boolean) 
+    ? [product.image_url, ...(JSON.parse(product.additional_images as string || '[]') || [])].filter(Boolean) 
     : [];
 
   const allCategories = product 
@@ -82,6 +82,18 @@ const ProductDetail = () => {
         ...(product.secondary_categories?.map(sc => sc.category) || [])
       ] 
     : [];
+
+  const prevImage = () => {
+    setSelectedImageIndex((current) => 
+      current === 0 ? allImages.length - 1 : current - 1
+    );
+  };
+  
+  const nextImage = () => {
+    setSelectedImageIndex((current) => 
+      current === allImages.length - 1 ? 0 : current + 1
+    );
+  };
 
   if (isLoading) {
     return (
