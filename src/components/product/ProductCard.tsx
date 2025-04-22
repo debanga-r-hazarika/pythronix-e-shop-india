@@ -1,12 +1,22 @@
 
 import { Link } from "react-router-dom";
-import { Product } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, ShoppingCart } from "lucide-react";
 
 interface ProductCardProps {
-  product: Product;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    original_price: number | null;
+    description: string;
+    image_url: string | null;
+    rating?: number;
+    review_count?: number;
+    is_new: boolean;
+    on_sale: boolean;
+  };
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
@@ -14,13 +24,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
     id,
     name,
     price,
-    originalPrice,
-    shortDescription,
-    image,
-    rating,
-    reviewCount,
-    isNew,
-    onSale,
+    original_price,
+    description,
+    image_url,
+    rating = 4.5,
+    review_count = 0,
+    is_new,
+    on_sale,
   } = product;
 
   // Format price to INR
@@ -36,12 +46,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
     <div className="group relative overflow-hidden rounded-lg border bg-white transition-all duration-300 hover:shadow-lg">
       {/* Badges */}
       <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
-        {isNew && (
+        {is_new && (
           <Badge className="bg-pythronix-blue text-white hover:bg-pythronix-blue">
             New
           </Badge>
         )}
-        {onSale && (
+        {on_sale && (
           <Badge className="bg-red-500 text-white hover:bg-red-500">
             Sale
           </Badge>
@@ -52,7 +62,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       <Link to={`/product/${id}`}>
         <div className="aspect-square overflow-hidden bg-gray-100 p-4">
           <img
-            src={image}
+            src={image_url || "/placeholder.svg"}
             alt={name}
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
           />
@@ -66,7 +76,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             {name}
           </h3>
         </Link>
-        <p className="mb-3 text-sm text-gray-600 line-clamp-2">{shortDescription}</p>
+        <p className="mb-3 text-sm text-gray-600 line-clamp-2">{description}</p>
 
         {/* Rating */}
         <div className="mb-3 flex items-center">
@@ -82,7 +92,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               />
             ))}
           </div>
-          <span className="ml-2 text-xs text-gray-600">({reviewCount})</span>
+          <span className="ml-2 text-xs text-gray-600">({review_count})</span>
         </div>
 
         {/* Price */}
@@ -92,15 +102,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
               <span className="text-xl font-semibold text-gray-900">
                 {formatPrice(price)}
               </span>
-              {originalPrice && (
+              {original_price && (
                 <span className="text-sm text-gray-500 line-through">
-                  {formatPrice(originalPrice)}
+                  {formatPrice(original_price)}
                 </span>
               )}
             </div>
-            {originalPrice && (
+            {original_price && (
               <span className="text-xs font-medium text-green-600">
-                Save {Math.round(((originalPrice - price) / originalPrice) * 100)}%
+                Save {Math.round(((original_price - price) / original_price) * 100)}%
               </span>
             )}
           </div>

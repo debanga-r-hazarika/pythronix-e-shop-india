@@ -1,7 +1,7 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { products } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProducts } from "@/lib/api/supabase";
 import { Button } from "@/components/ui/button";
 import { 
   Tabs, 
@@ -15,9 +15,27 @@ import { ArrowRight } from "lucide-react";
 const FeaturedProducts = () => {
   const [activeTab, setActiveTab] = useState("featured");
   
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts
+  });
+
   const featuredProducts = products.filter(product => product.featured);
-  const newProducts = products.filter(product => product.isNew);
-  const saleProducts = products.filter(product => product.onSale);
+  const newProducts = products.filter(product => product.is_new);
+  const saleProducts = products.filter(product => product.on_sale);
+  
+  if (isLoading) {
+    return (
+      <section className="py-16">
+        <div className="container">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mx-auto"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+          </div>
+        </div>
+      </section>
+    );
+  }
   
   return (
     <section className="py-16">

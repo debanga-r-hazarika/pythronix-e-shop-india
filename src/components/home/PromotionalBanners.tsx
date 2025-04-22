@@ -1,9 +1,33 @@
 
 import { Link } from "react-router-dom";
-import { banners } from "@/lib/data";
+import { useQuery } from "@tanstack/react-query";
+import { fetchBanners } from "@/lib/api/supabase";
 import { Button } from "@/components/ui/button";
 
 const PromotionalBanners = () => {
+  const { data: banners = [], isLoading } = useQuery({
+    queryKey: ['banners'],
+    queryFn: fetchBanners
+  });
+
+  if (isLoading) {
+    return (
+      <section className="py-12 bg-pythronix-gray">
+        <div className="container">
+          <div className="grid gap-8 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="animate-pulse rounded-lg bg-white p-6">
+                <div className="h-8 bg-gray-200 rounded w-2/3 mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+                <div className="h-10 bg-gray-200 rounded w-1/3"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-12 bg-pythronix-gray">
       <div className="container">
@@ -23,13 +47,13 @@ const PromotionalBanners = () => {
                   </p>
                   <Button asChild>
                     <Link to={banner.link}>
-                      {banner.buttonText}
+                      {banner.button_text}
                     </Link>
                   </Button>
                 </div>
                 <div className="aspect-[4/3] w-full md:w-2/5">
                   <img
-                    src={banner.image}
+                    src={banner.image_url}
                     alt={banner.title}
                     className="h-full w-full object-cover"
                   />
