@@ -1,8 +1,11 @@
 
-import { Link, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Package, Users, Tags, Image, LayoutDashboard } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -13,6 +16,40 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, title, description }: AdminLayoutProps) {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    async function checkAdmin() {
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      try {
+        // Get admin role from user_roles table directly
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        // If no admin role found, redirect to home
+        if (!data) {
+          toast.error("You don't have permission to access the admin panel");
+          navigate("/");
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        toast.error("Error checking admin permissions");
+        navigate("/");
+      }
+    }
+
+    checkAdmin();
+  }, [user, navigate]);
   
   if (!user) return null;
 

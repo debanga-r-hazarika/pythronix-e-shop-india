@@ -20,9 +20,17 @@ export default function Admin() {
       }
 
       try {
-        const { data, error } = await supabase.rpc('is_admin', { user_id: user.id });
+        // Get admin role from user_roles table directly
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
         if (error) throw error;
         
+        // If no admin role found, redirect to home
         if (!data) {
           toast.error("You don't have permission to access the admin panel");
           navigate("/");
