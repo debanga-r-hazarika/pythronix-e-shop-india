@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -33,14 +32,12 @@ const ProductDetail = () => {
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
-  // Fetch product details
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
     queryFn: () => fetchProductById(id),
     enabled: !!id
   });
   
-  // Handle adding to wishlist
   const handleAddToWishlist = async () => {
     if (!user) {
       toast.error("Please login to add items to your wishlist");
@@ -59,7 +56,6 @@ const ProductDetail = () => {
     }
   };
   
-  // Format price to INR
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -68,7 +64,6 @@ const ProductDetail = () => {
     }).format(price);
   };
   
-  // Parse specifications and package includes from JSON
   const specifications = product?.specifications ? 
     (typeof product.specifications === 'string' ? 
       JSON.parse(product.specifications) : product.specifications) : {};
@@ -77,24 +72,17 @@ const ProductDetail = () => {
     (typeof product.package_includes === 'string' ? 
       JSON.parse(product.package_includes) : product.package_includes) : [];
       
-  // Parse additional images from JSON
-  const additionalImages = product?.additional_images ? 
-    (typeof product.additional_images === 'string' ? 
-      JSON.parse(product.additional_images) : product.additional_images) : [];
-      
-  // Combine main image and additional images
-  const allImages = product ? [product.image_url, ...additionalImages].filter(Boolean) : [];
+  const allImages = product 
+    ? [product.image_url, ...(JSON.parse(product.additional_images || '[]') || [])].filter(Boolean) 
+    : [];
 
-  // Navigate through images
-  const nextImage = () => {
-    setSelectedImageIndex((prev) => (prev + 1) % allImages.length);
-  };
-  
-  const prevImage = () => {
-    setSelectedImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
-  };
+  const allCategories = product 
+    ? [
+        product.category, 
+        ...(product.secondary_categories?.map(sc => sc.category) || [])
+      ] 
+    : [];
 
-  // Show loading state
   if (isLoading) {
     return (
       <MainLayout>
@@ -121,7 +109,6 @@ const ProductDetail = () => {
     );
   }
   
-  // Show error state
   if (error || !product) {
     return (
       <MainLayout>
@@ -141,25 +128,26 @@ const ProductDetail = () => {
   return (
     <MainLayout>
       <div className="container py-12">
-        {/* Breadcrumbs */}
         <div className="mb-6 text-sm text-gray-500">
           <a href="/" className="hover:text-pythronix-blue">Home</a> {" / "}
           <a href="/products" className="hover:text-pythronix-blue">Products</a> {" / "}
-          {product.category && (
+          {allCategories.map((category, index) => (
             <>
-              <a href={`/products?category=${product.category.id}`} className="hover:text-pythronix-blue">
-                {product.category.name}
-              </a> {" / "}
+              <a 
+                key={category.id} 
+                href={`/products?category=${category.id}`} 
+                className="hover:text-pythronix-blue"
+              >
+                {category.name}
+              </a> 
+              {index < allCategories.length - 1 && " / "}
             </>
-          )}
+          ))}
           <span className="text-gray-700">{product.name}</span>
         </div>
         
-        {/* Product Details */}
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          {/* Product Image Gallery */}
           <div>
-            {/* Main Image */}
             <div className="relative aspect-square overflow-hidden rounded-lg border bg-white">
               <img
                 src={allImages[selectedImageIndex] || "/placeholder.svg"}
@@ -189,33 +177,28 @@ const ProductDetail = () => {
               )}
             </div>
             
-            {/* Thumbnails */}
-            {allImages.length > 1 && (
-              <div className="mt-4 grid grid-cols-5 gap-2">
-                {allImages.map((img, index) => (
-                  <div
-                    key={index}
-                    className={`aspect-square cursor-pointer overflow-hidden rounded-md border ${
-                      selectedImageIndex === index ? "ring-2 ring-pythronix-blue" : ""
-                    }`}
-                    onClick={() => setSelectedImageIndex(index)}
-                  >
-                    <img
-                      src={img || "/placeholder.svg"}
-                      alt={`${product.name} - view ${index + 1}`}
-                      className="h-full w-full object-cover object-center"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="mt-4 grid grid-cols-5 gap-2">
+              {allImages.map((img, index) => (
+                <div
+                  key={index}
+                  className={`aspect-square cursor-pointer overflow-hidden rounded-md border ${
+                    selectedImageIndex === index ? "ring-2 ring-pythronix-blue" : ""
+                  }`}
+                  onClick={() => setSelectedImageIndex(index)}
+                >
+                  <img
+                    src={img || "/placeholder.svg"}
+                    alt={`${product.name} - view ${index + 1}`}
+                    className="h-full w-full object-cover object-center"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
           
-          {/* Product Info */}
           <div>
             <h1 className="text-3xl font-bold text-gray-900 font-heading">{product.name}</h1>
             
-            {/* Rating */}
             <div className="mt-2 flex items-center">
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
@@ -234,7 +217,6 @@ const ProductDetail = () => {
               </span>
             </div>
             
-            {/* Price */}
             <div className="mt-4 flex items-center">
               <span className="text-3xl font-semibold text-gray-900">
                 {formatPrice(product.price)}
@@ -251,12 +233,10 @@ const ProductDetail = () => {
               )}
             </div>
             
-            {/* Description */}
             <div className="mt-4 text-gray-600">
               <p>{product.description}</p>
             </div>
             
-            {/* Stock Status */}
             <div className="mt-6 flex items-center">
               <span className="text-sm font-medium text-gray-900">Availability:</span>
               <span className={`ml-2 text-sm ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
@@ -264,7 +244,6 @@ const ProductDetail = () => {
               </span>
             </div>
             
-            {/* Quantity Selector */}
             <div className="mt-6">
               <label htmlFor="quantity" className="text-sm font-medium text-gray-900">
                 Quantity
@@ -302,7 +281,6 @@ const ProductDetail = () => {
               </div>
             </div>
             
-            {/* Action Buttons */}
             <div className="mt-8 flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
               <Button className="flex-1" disabled={product.stock === 0} onClick={() => toast.success("Added to cart")}>
                 <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
@@ -320,7 +298,6 @@ const ProductDetail = () => {
               </Button>
             </div>
             
-            {/* Delivery Info */}
             <div className="mt-8 rounded-lg border p-4">
               <div className="flex items-start space-x-3">
                 <div className="rounded-full bg-pythronix-gray p-2">
@@ -337,7 +314,6 @@ const ProductDetail = () => {
           </div>
         </div>
         
-        {/* Product Tabs */}
         <div className="mt-16">
           <Tabs defaultValue="specifications">
             <TabsList className="w-full justify-start border-b">

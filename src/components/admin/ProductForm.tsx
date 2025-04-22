@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,7 +24,9 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [originalPrice, setOriginalPrice] = useState(product?.original_price || "");
   const [stock, setStock] = useState(product?.stock || 0);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    product?.category_id ? [product.category_id] : []
+    product?.category_id 
+      ? [product.category_id, ...(product.secondary_categories?.map(sc => sc.category.id) || [])] 
+      : []
   );
   const [featured, setFeatured] = useState(product?.featured || false);
   const [isNew, setIsNew] = useState(product?.is_new || false);
@@ -33,7 +34,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [mainImage, setMainImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>(product?.image_url || "");
   
-  // Multiple images support
   const [additionalImages, setAdditionalImages] = useState<File[]>([]);
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>(
     product?.additional_images ? JSON.parse(product.additional_images) : []
@@ -63,7 +63,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
       let updatedImageUrl = imageUrl;
       let updatedAdditionalImages = [...additionalImageUrls];
       
-      // Upload main image if selected
       if (mainImage) {
         const fileExt = mainImage.name.split('.').pop();
         const filePath = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
@@ -74,7 +73,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           
         if (uploadError) throw uploadError;
         
-        // Get the public URL for the uploaded image
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
@@ -82,7 +80,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         updatedImageUrl = publicUrl;
       }
       
-      // Upload additional images if selected
       if (additionalImages.length > 0) {
         for (const image of additionalImages) {
           const fileExt = image.name.split('.').pop();
@@ -94,7 +91,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
             
           if (uploadError) throw uploadError;
           
-          // Get the public URL for the uploaded image
           const { data: { publicUrl } } = supabase.storage
             .from('product-images')
             .getPublicUrl(filePath);
@@ -103,7 +99,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         }
       }
       
-      // Convert specifications array to object
       const specsObj = specifications
         .filter(spec => spec.key.trim() !== '' && spec.value.trim() !== '')
         .reduce((obj, spec) => {
@@ -111,10 +106,8 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
           return obj;
         }, {});
         
-      // Filter out empty package includes
       const filteredPackageIncludes = packageIncludes.filter(item => item.trim() !== '');
       
-      // Get the primary category (first one in the list) or null if none selected
       const primaryCategoryId = selectedCategories.length > 0 ? selectedCategories[0] : null;
       
       const productData = {
@@ -137,7 +130,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
       let productId;
       
       if (product) {
-        // Update existing product
         productId = product.id;
         const { data, error } = await supabase
           .from('products')
@@ -149,7 +141,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         result = data[0];
         toast.success("Product updated successfully");
       } else {
-        // Create new product
         const { data, error } = await supabase
           .from('products')
           .insert(productData)
@@ -161,24 +152,21 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         toast.success("Product created successfully");
       }
       
-      // Handle product categories (all except the primary which is already stored in category_id)
       if (selectedCategories.length > 1) {
-        // First remove existing product_categories for this product (except primary)
         await supabase
           .from('product_categories')
           .delete()
           .eq('product_id', productId);
         
-        // Then insert new relationships for secondary categories
-        const productCategoriesData = selectedCategories.slice(1).map(categoryId => ({
+        const secondaryCategoriesData = selectedCategories.slice(1).map(categoryId => ({
           product_id: productId,
           category_id: categoryId
         }));
         
-        if (productCategoriesData.length > 0) {
+        if (secondaryCategoriesData.length > 0) {
           const { error: categoryError } = await supabase
             .from('product_categories')
-            .insert(productCategoriesData);
+            .insert(secondaryCategoriesData);
             
           if (categoryError) {
             console.error("Error saving secondary categories:", categoryError);
@@ -216,10 +204,8 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   
   const handleRemoveAdditionalImage = (index: number, isUploaded: boolean) => {
     if (isUploaded) {
-      // Remove uploaded image URL
       setAdditionalImageUrls(prev => prev.filter((_, i) => i !== index));
     } else {
-      // Remove file from additionalImages state
       setAdditionalImages(prev => prev.filter((_, i) => i !== index));
     }
   };
@@ -389,7 +375,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         </div>
       </div>
 
-      {/* Main Product Image */}
       <div className="space-y-2">
         <Label>Main Product Image</Label>
         {(imageUrl || mainImage) ? (
@@ -426,7 +411,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         )}
       </div>
 
-      {/* Additional Images */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Additional Images (up to 5 total)</Label>
@@ -451,7 +435,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {/* Display existing uploaded images */}
           {additionalImageUrls.map((url, index) => (
             <div key={`uploaded-${index}`} className="relative aspect-square bg-muted rounded-md overflow-hidden border">
               <img 
@@ -471,7 +454,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
             </div>
           ))}
           
-          {/* Display newly selected images */}
           {additionalImages.map((file, index) => (
             <div key={`new-${index}`} className="relative aspect-square bg-muted rounded-md overflow-hidden border">
               <img 
@@ -491,7 +473,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
             </div>
           ))}
           
-          {/* Empty slots */}
           {Array.from({ length: Math.max(0, 5 - additionalImageUrls.length - additionalImages.length) }).map((_, index) => (
             <div 
               key={`empty-${index}`} 
@@ -510,7 +491,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         </p>
       </div>
 
-      {/* Package Includes Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Package Includes</Label>
@@ -545,7 +525,6 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         </div>
       </div>
       
-      {/* Specifications Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label>Specifications</Label>
