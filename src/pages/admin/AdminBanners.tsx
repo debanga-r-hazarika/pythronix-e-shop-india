@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
+import { Card } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
