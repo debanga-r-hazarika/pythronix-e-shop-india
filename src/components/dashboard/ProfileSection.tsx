@@ -28,14 +28,19 @@ export default function ProfileSection() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      setFormData({
-        full_name: data.full_name || "",
-        phone: data.phone || "",
-        address: data.address || "",
-      });
-    },
+    enabled: !!user?.id,
   });
+
+  // Update form data when profile is loaded
+  useState(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || "",
+        phone: profile.phone || "",
+        address: profile.address || "",
+      });
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
