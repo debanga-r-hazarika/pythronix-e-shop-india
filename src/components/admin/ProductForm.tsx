@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { UploadCloud, Trash2 } from "lucide-react";
+import { UploadCloud, Trash2, Plus, X } from "lucide-react";
 
 interface ProductFormProps {
   product?: any;
@@ -29,6 +29,14 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const [image, setImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>(product?.image_url || "");
   const [loading, setLoading] = useState(false);
+  const [specifications, setSpecifications] = useState<{key: string, value: string}[]>(
+    product?.specifications ? Object.entries(JSON.parse(product.specifications)).map(
+      ([key, value]) => ({ key, value: value as string })
+    ) : [{ key: "", value: "" }]
+  );
+  const [packageIncludes, setPackageIncludes] = useState<string[]>(
+    product?.package_includes ? JSON.parse(product.package_includes) : [""]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +70,17 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         updatedImageUrl = publicUrl;
       }
       
+      // Convert specifications array to object
+      const specsObj = specifications
+        .filter(spec => spec.key.trim() !== '' && spec.value.trim() !== '')
+        .reduce((obj, spec) => {
+          obj[spec.key] = spec.value;
+          return obj;
+        }, {});
+        
+      // Filter out empty package includes
+      const filteredPackageIncludes = packageIncludes.filter(item => item.trim() !== '');
+      
       const productData = {
         name,
         description,
@@ -73,6 +92,8 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         is_new: isNew,
         on_sale: onSale,
         image_url: updatedImageUrl || null,
+        specifications: Object.keys(specsObj).length > 0 ? JSON.stringify(specsObj) : null,
+        package_includes: filteredPackageIncludes.length > 0 ? JSON.stringify(filteredPackageIncludes) : null,
       };
       
       let result;
@@ -118,6 +139,34 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
   const handleRemoveImage = () => {
     setImage(null);
     setImageUrl("");
+  };
+
+  const addSpecification = () => {
+    setSpecifications([...specifications, { key: "", value: "" }]);
+  };
+
+  const removeSpecification = (index: number) => {
+    setSpecifications(specifications.filter((_, i) => i !== index));
+  };
+
+  const updateSpecification = (index: number, field: "key" | "value", value: string) => {
+    const newSpecs = [...specifications];
+    newSpecs[index][field] = value;
+    setSpecifications(newSpecs);
+  };
+
+  const addPackageItem = () => {
+    setPackageIncludes([...packageIncludes, ""]);
+  };
+
+  const removePackageItem = (index: number) => {
+    setPackageIncludes(packageIncludes.filter((_, i) => i !== index));
+  };
+
+  const updatePackageItem = (index: number, value: string) => {
+    const newItems = [...packageIncludes];
+    newItems[index] = value;
+    setPackageIncludes(newItems);
   };
 
   return (
@@ -275,6 +324,83 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
             </Label>
           </div>
         )}
+      </div>
+
+      {/* Package Includes Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Package Includes</Label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={addPackageItem}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Item
+          </Button>
+        </div>
+        
+        <div className="space-y-2">
+          {packageIncludes.map((item, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <Input
+                value={item}
+                onChange={(e) => updatePackageItem(index, e.target.value)}
+                placeholder="e.g., 1 x Arduino Mega Original"
+              />
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon"
+                onClick={() => removePackageItem(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Specifications Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label>Specifications</Label>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={addSpecification}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Specification
+          </Button>
+        </div>
+        
+        <div className="space-y-2">
+          {specifications.map((spec, index) => (
+            <div key={index} className="flex items-center space-x-2">
+              <Input
+                value={spec.key}
+                onChange={(e) => updateSpecification(index, "key", e.target.value)}
+                placeholder="Name (e.g., Model)"
+                className="w-1/3"
+              />
+              <Input
+                value={spec.value}
+                onChange={(e) => updateSpecification(index, "value", e.target.value)}
+                placeholder="Value (e.g., Mega 2560)"
+                className="flex-1"
+              />
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="icon"
+                onClick={() => removeSpecification(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>

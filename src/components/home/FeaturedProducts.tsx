@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -20,9 +21,9 @@ const FeaturedProducts = () => {
     queryFn: fetchProducts
   });
 
-  const featuredProducts = products.filter(product => product.featured);
-  const newProducts = products.filter(product => product.is_new);
-  const saleProducts = products.filter(product => product.on_sale);
+  const featuredProducts = products.filter(product => product.featured).slice(0, 8);
+  const newProducts = products.filter(product => product.is_new).slice(0, 8);
+  const saleProducts = products.filter(product => product.on_sale).slice(0, 8);
   
   if (isLoading) {
     return (
@@ -66,25 +67,43 @@ const FeaturedProducts = () => {
           
           <TabsContent value="featured" className="mt-0">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {featuredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {featuredProducts.length > 0 ? (
+                featuredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <p>No featured products available.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
           
           <TabsContent value="new" className="mt-0">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {newProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {newProducts.length > 0 ? (
+                newProducts.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <p>No new products available.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
           
           <TabsContent value="sale" className="mt-0">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {saleProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {saleProducts.length > 0 ? (
+                saleProducts.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <p>No sale products available.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

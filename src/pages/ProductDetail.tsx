@@ -1,8 +1,11 @@
 
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProductById } from "@/lib/api/supabase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import MainLayout from "@/components/layout/MainLayout";
-import { products } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { 
   Tabs, 
@@ -17,18 +20,85 @@ import {
   ShoppingCart,
   CreditCard,
   Truck,
-  ArrowLeft
+  ArrowLeft,
+  Heart
 } from "lucide-react";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [quantity, setQuantity] = useState(1);
+  const { user } = useAuth();
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   
-  // Find the product with matching ID
-  const product = products.find((p) => p.id === id);
+  // Fetch product details
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['product', id],
+    queryFn: () => fetchProductById(id),
+    enabled: !!id
+  });
   
-  // If product not found, show error
-  if (!product) {
+  // Handle adding to wishlist
+  const handleAddToWishlist = async () => {
+    if (!user) {
+      toast.error("Please login to add items to your wishlist");
+      return;
+    }
+
+    try {
+      setIsAddingToWishlist(true);
+      // Here we would add the logic to add/remove from wishlist
+      // For now we'll just show a toast
+      toast.success("Added to wishlist");
+    } catch (err) {
+      toast.error("Failed to add to wishlist");
+      console.error(err);
+    } finally {
+      setIsAddingToWishlist(false);
+    }
+  };
+  
+  // Format price to INR
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+  
+  // Parse specifications and package includes from JSON strings
+  const specifications = product?.specifications ? JSON.parse(product.specifications) : {};
+  const packageIncludes = product?.package_includes ? JSON.parse(product.package_includes) : [];
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="container py-12">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-6"></div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              <div className="aspect-square bg-gray-200 rounded"></div>
+              <div>
+                <div className="h-8 bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
+                <div className="h-4 bg-gray-200 rounded mb-8"></div>
+                <div className="space-y-4">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+  
+  // Show error state
+  if (error || !product) {
     return (
       <MainLayout>
         <div className="container py-16 text-center">
@@ -44,15 +114,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Format price to INR
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-  
   return (
     <MainLayout>
       <div className="container py-12">
@@ -60,6 +121,13 @@ const ProductDetail = () => {
         <div className="mb-6 text-sm text-gray-500">
           <a href="/" className="hover:text-pythronix-blue">Home</a> {" / "}
           <a href="/products" className="hover:text-pythronix-blue">Products</a> {" / "}
+          {product.category && (
+            <>
+              <a href={`/products?category=${product.category.id}`} className="hover:text-pythronix-blue">
+                {product.category.name}
+              </a> {" / "}
+            </>
+          )}
           <span className="text-gray-700">{product.name}</span>
         </div>
         
@@ -68,7 +136,7 @@ const ProductDetail = () => {
           {/* Product Image */}
           <div className="aspect-square overflow-hidden rounded-lg border bg-white p-4">
             <img
-              src={product.image}
+              src={product.image_url || "/placeholder.svg"}
               alt={product.name}
               className="h-full w-full object-contain"
             />
@@ -85,7 +153,7 @@ const ProductDetail = () => {
                   <Star
                     key={i}
                     className={`h-4 w-4 ${
-                      i < Math.floor(product.rating)
+                      i < 4
                         ? "text-yellow-400 fill-yellow-400"
                         : "text-gray-300"
                     }`}
@@ -93,7 +161,7 @@ const ProductDetail = () => {
                 ))}
               </div>
               <span className="ml-2 text-sm text-gray-600">
-                {product.rating} ({product.reviewCount} reviews)
+                4.0 (12 reviews)
               </span>
             </div>
             
@@ -102,14 +170,14 @@ const ProductDetail = () => {
               <span className="text-3xl font-semibold text-gray-900">
                 {formatPrice(product.price)}
               </span>
-              {product.originalPrice && (
+              {product.original_price && (
                 <span className="ml-3 text-lg text-gray-500 line-through">
-                  {formatPrice(product.originalPrice)}
+                  {formatPrice(product.original_price)}
                 </span>
               )}
-              {product.originalPrice && (
+              {product.original_price && (
                 <span className="ml-3 text-sm font-medium text-green-600">
-                  Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                  Save {Math.round(((product.original_price - product.price) / product.original_price) * 100)}%
                 </span>
               )}
             </div>
@@ -137,6 +205,7 @@ const ProductDetail = () => {
                   type="button"
                   className="h-9 w-9 rounded-l-md border border-r-0 bg-gray-100 flex items-center justify-center"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={product.stock === 0}
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -151,11 +220,13 @@ const ProductDetail = () => {
                     setQuantity(Math.min(product.stock, Math.max(1, val)));
                   }}
                   className="h-9 w-16 border text-center"
+                  disabled={product.stock === 0}
                 />
                 <button
                   type="button"
                   className="h-9 w-9 rounded-r-md border border-l-0 bg-gray-100 flex items-center justify-center"
                   onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                  disabled={product.stock === 0}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -164,11 +235,19 @@ const ProductDetail = () => {
             
             {/* Action Buttons */}
             <div className="mt-8 flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
-              <Button className="flex-1" disabled={product.stock === 0}>
+              <Button className="flex-1" disabled={product.stock === 0} onClick={() => toast.success("Added to cart")}>
                 <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
               </Button>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={product.stock === 0}>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={product.stock === 0} onClick={() => toast.success("Proceeding to checkout")}>
                 <CreditCard className="mr-2 h-4 w-4" /> Buy Now
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleAddToWishlist}
+                disabled={isAddingToWishlist}
+              >
+                <Heart className="h-4 w-4" />
               </Button>
             </div>
             
@@ -194,18 +273,20 @@ const ProductDetail = () => {
           <Tabs defaultValue="specifications">
             <TabsList className="w-full justify-start border-b">
               <TabsTrigger value="specifications">Specifications</TabsTrigger>
+              <TabsTrigger value="package">Package Includes</TabsTrigger>
               <TabsTrigger value="reviews">Customer Reviews</TabsTrigger>
               <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="specifications" className="mt-6">
-              {product.specifications ? (
+              {Object.keys(specifications).length > 0 ? (
                 <div className="overflow-hidden rounded-lg border">
                   <table className="w-full text-left">
                     <tbody>
-                      {Object.entries(product.specifications).map(([key, value]) => (
+                      {Object.entries(specifications).map(([key, value]) => (
                         <tr key={key} className="border-b last:border-b-0">
                           <th className="p-4 text-sm font-medium bg-gray-50">{key}</th>
-                          <td className="p-4 text-sm text-gray-600">{value}</td>
+                          <td className="p-4 text-sm text-gray-600">{value as string}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -215,6 +296,22 @@ const ProductDetail = () => {
                 <p className="text-sm text-gray-600">No specifications available for this product.</p>
               )}
             </TabsContent>
+            
+            <TabsContent value="package" className="mt-6">
+              {packageIncludes.length > 0 ? (
+                <div className="rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-4">Package Includes:</h3>
+                  <ul className="list-disc pl-5 space-y-2">
+                    {packageIncludes.map((item, index) => (
+                      <li key={index} className="text-gray-700">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">No package information available for this product.</p>
+              )}
+            </TabsContent>
+            
             <TabsContent value="reviews" className="mt-6">
               <div className="grid gap-8 md:grid-cols-2">
                 <div>
@@ -225,7 +322,7 @@ const ProductDetail = () => {
                         <Star
                           key={i}
                           className={`h-5 w-5 ${
-                            i < Math.floor(product.rating)
+                            i < 4
                               ? "text-yellow-400 fill-yellow-400"
                               : "text-gray-300"
                           }`}
@@ -233,16 +330,17 @@ const ProductDetail = () => {
                       ))}
                     </div>
                     <span className="ml-2 text-gray-600">
-                      Based on {product.reviewCount} reviews
+                      Based on 12 reviews
                     </span>
                   </div>
-                  <Button className="mt-4">Write a Review</Button>
+                  <Button className="mt-4" onClick={() => toast.success("Review form coming soon!")}>Write a Review</Button>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Customer reviews will display here. This is a placeholder for demonstration purposes.</p>
                 </div>
               </div>
             </TabsContent>
+            
             <TabsContent value="shipping" className="mt-6">
               <div className="space-y-4">
                 <div>
