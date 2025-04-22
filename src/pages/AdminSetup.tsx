@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,14 +14,13 @@ export default function AdminSetup() {
     e.preventDefault();
     
     try {
-      // Sign up the admin user with explicit admin role
+      // Sign up the admin user with metadata
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
           data: {
             full_name: 'Admin User',
-            role: 'admin' // Explicitly set the admin role
           }
         }
       });
@@ -31,13 +29,13 @@ export default function AdminSetup() {
 
       // Check if user was created successfully
       if (data.user) {
-        // Create a user role entry to ensure admin access
+        // Create a user role entry in our custom roles table
         const { error: roleError } = await supabase
           .from('user_roles')
-          .insert({ 
+          .insert([{ 
             user_id: data.user.id, 
-            role: 'admin' 
-          });
+            role: 'admin' as const
+          }]);
 
         if (roleError) throw roleError;
 
