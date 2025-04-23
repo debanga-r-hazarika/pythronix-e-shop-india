@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -171,7 +170,7 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         toast.success("Product created successfully");
       }
       
-      // Always delete existing secondary categories and recreate them
+      // Always delete existing secondary categories and re-create them
       const { error: deleteError } = await supabase
         .from('product_categories')
         .delete()
@@ -182,11 +181,13 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         toast.error("Error updating secondary categories");
       }
       
-      // Add secondary categories (all categories except primary)
-      const secondaryCategoriesData = selectedCategories.slice(1).map(categoryId => ({
-        product_id: productId,
-        category_id: categoryId
-      }));
+      // Insert all selected categories EXCEPT the primary as secondary categories
+      const secondaryCategoriesData = selectedCategories
+        .filter((catId) => catId !== primaryCategoryId)
+        .map(categoryId => ({
+          product_id: productId,
+          category_id: categoryId
+        }));
       
       if (secondaryCategoriesData.length > 0) {
         const { error: categoryError } = await supabase

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -19,7 +18,6 @@ import {
 } from "@/components/ui/accordion";
 import { Filter, X } from "lucide-react";
 
-// Define a type for our filter props
 interface FilterProps {
   categories: any[];
   categoryId: string | null;
@@ -44,24 +42,21 @@ interface FilterProps {
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Filter states
   const [categoryId, setCategoryId] = useState<string | null>(searchParams.get('category'));
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // Initialize with default range
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [minPriceValue, setMinPriceValue] = useState<string>("0");
-  const [maxPriceValue, setMaxPriceValue] = useState<string>("10000"); // Start with high default
+  const [maxPriceValue, setMaxPriceValue] = useState<string>("10000");
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string | null>(searchParams.get('search'));
-  
-  // Get all categories for the filter
+
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories
   });
-  
-  // Update URL when filters change
+
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     
@@ -79,8 +74,7 @@ export default function Products() {
     
     setSearchParams(params);
   }, [categoryId, searchQuery, setSearchParams]);
-  
-  // Get filtered products
+
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ['products', { categoryId, priceRange, inStock, sortBy, sortOrder, searchQuery }],
     queryFn: () => fetchProducts({
@@ -93,15 +87,13 @@ export default function Products() {
       search: searchQuery
     })
   });
-  
-  // Apply price filter when user inputs custom values
+
   const applyPriceFilter = () => {
     const min = parseInt(minPriceValue) || 0;
     const max = parseInt(maxPriceValue) || maxPrice;
     setPriceRange([min, max]);
   };
-  
-  // Clear all filters
+
   const clearFilters = () => {
     setCategoryId(null);
     setPriceRange([0, maxPrice || 10000]);
@@ -112,33 +104,28 @@ export default function Products() {
     setSortOrder("desc");
     setSearchQuery(null);
     
-    // Update URL params
     const params = new URLSearchParams(searchParams);
     params.delete('category');
     params.delete('search');
     setSearchParams(params);
   };
 
-  // Get max price for the slider
   const [maxPrice, setMaxPrice] = useState(10000);
   useEffect(() => {
     if (products && products.length > 0) {
       const highestPrice = Math.max(
         ...products.map(p => p.original_price || p.price)
       );
-      // Set max price to the nearest 1000 above the highest product price
       const roundedMaxPrice = Math.ceil(highestPrice / 1000) * 1000;
       setMaxPrice(roundedMaxPrice);
       
-      // Only update the price range if it's the initial load
       if (priceRange[1] === 10000 && !searchParams.has('min_price') && !searchParams.has('max_price')) {
         setPriceRange([0, roundedMaxPrice]);
         setMaxPriceValue(roundedMaxPrice.toString());
       }
     }
   }, [products]);
-  
-  // Update slider when input fields change
+
   useEffect(() => {
     const handlePriceRangeChange = () => {
       setMinPriceValue(priceRange[0].toString());
@@ -150,14 +137,12 @@ export default function Products() {
   return (
     <MainLayout>
       <div className="container py-8">
-        {/* Breadcrumbs */}
         <div className="mb-6 text-sm text-gray-500">
           <a href="/" className="hover:text-pythronix-blue">Home</a> {" / "}
           <span className="text-gray-700">Products</span>
         </div>
         
         <div className="flex flex-col space-y-4">
-          {/* Page Title and Filter Toggle */}
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-gray-900 font-heading">
               {searchQuery ? `Search results for "${searchQuery}"` : "Products"}
@@ -172,9 +157,7 @@ export default function Products() {
             </Button>
           </div>
           
-          {/* Main content with filters and products */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Filters - Mobile */}
             {showFilters && (
               <div className="md:hidden bg-white p-4 border rounded-lg shadow-sm">
                 <div className="flex items-center justify-between pb-4 border-b">
@@ -212,7 +195,6 @@ export default function Products() {
               </div>
             )}
             
-            {/* Filters - Desktop */}
             <div className="hidden md:block">
               <div className="bg-white p-4 border rounded-lg shadow-sm sticky top-24">
                 <h2 className="font-semibold border-b pb-2 mb-4">Filters</h2>
@@ -235,9 +217,7 @@ export default function Products() {
               </div>
             </div>
             
-            {/* Product Grid */}
             <div className="md:col-span-3">
-              {/* Sort options */}
               <div className="flex items-center justify-between mb-6">
                 <div className="text-sm text-gray-500">
                   {products.length} products
@@ -268,7 +248,6 @@ export default function Products() {
                 </div>
               </div>
               
-              {/* Products */}
               {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
@@ -305,7 +284,6 @@ export default function Products() {
   );
 }
 
-// Mobile Filters Component
 const MobileFilters = ({ 
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
   inStock, setInStock, maxPrice, sortBy, setSortBy,
@@ -439,7 +417,6 @@ const MobileFilters = ({
   );
 };
 
-// Desktop Filters Component
 const DesktopFilters = ({ 
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
   inStock, setInStock, maxPrice, clearFilters, minPriceValue, setMinPriceValue,

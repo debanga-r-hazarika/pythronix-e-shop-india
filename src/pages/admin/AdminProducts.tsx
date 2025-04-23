@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdminProducts() {
   const { user } = useAuth();
@@ -105,7 +105,6 @@ export default function AdminProducts() {
 
   const handleProductSaved = async (savedProduct, isNew) => {
     try {
-      // Fetch the complete product data with categories
       const { data: refreshedProduct, error } = await supabase
         .from('products')
         .select(`
@@ -125,7 +124,6 @@ export default function AdminProducts() {
       }
     } catch (error) {
       console.error("Error refreshing product data:", error);
-      // Fallback to using the saved product directly
       if (isNew) {
         setProducts([savedProduct, ...products]);
       } else {
