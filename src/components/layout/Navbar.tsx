@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,27 @@ const Navbar = () => {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
+  });
+
+  const { data: cartCount = 0 } = useQuery({
+    queryKey: ['cartCount'],
+    queryFn: async () => {
+      if (!user) return 0;
+      
+      const { data, error, count } = await supabase
+        .from('cart_items')
+        .select('*', { count: 'exact' })
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error("Error fetching cart count:", error);
+        return 0;
+      }
+      
+      return count || 0;
+    },
+    enabled: !!user,
+    refetchOnWindowFocus: true
   });
 
   useEffect(() => {
@@ -242,7 +262,7 @@ const Navbar = () => {
               <div className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-pythronix-blue text-[10px] font-medium text-white">
-                  0
+                  {cartCount}
                 </span>
               </div>
             </Link>

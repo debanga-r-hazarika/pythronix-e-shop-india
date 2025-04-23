@@ -6,6 +6,7 @@ import { Star, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProductCardProps {
   product: {
@@ -41,6 +42,7 @@ const ProductCard = ({
   } = product;
 
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Format price to INR
   const formatPrice = (price: number) => {
@@ -98,6 +100,10 @@ const ProductCard = ({
         if (error) throw error;
         toast.success("Item added to cart");
       }
+      
+      // Invalidate cart count query to update the cart counter
+      queryClient.invalidateQueries({ queryKey: ['cartCount'] });
+      
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add item to cart");
