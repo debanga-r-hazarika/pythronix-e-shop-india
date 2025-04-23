@@ -23,7 +23,7 @@ export default function FeaturedProducts() {
       <div className="container py-8">
         {/* Breadcrumbs */}
         <div className="mb-6 text-sm text-gray-500">
-          <a href="/" className="hover:text-pythronix-blue">Home</a> {" / "}
+          <Link to="/" className="hover:text-pythronix-blue">Home</Link> {" / "}
           <span className="text-gray-700">Featured Products</span>
         </div>
         

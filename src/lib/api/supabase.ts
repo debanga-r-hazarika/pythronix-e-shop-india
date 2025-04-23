@@ -9,7 +9,9 @@ export async function fetchProducts(filters = {}) {
     in_stock = null,
     sort_by = "created_at",
     sort_order = "desc",
-    search = null
+    search = null,
+    on_sale = null,
+    featured = null
   } = filters as {
     category_id?: string | null;
     min_price?: number | null;
@@ -18,6 +20,8 @@ export async function fetchProducts(filters = {}) {
     sort_by?: string;
     sort_order?: "asc" | "desc";
     search?: string | null;
+    on_sale?: boolean | null;
+    featured?: boolean | null;
   };
   
   let query = supabase
@@ -30,7 +34,7 @@ export async function fetchProducts(filters = {}) {
   
   // Apply category filter
   if (category_id) {
-    // Fix the category filter - use correct OR filter syntax
+    // Using or() with explicit conditions for proper filtering
     query = query.or(`category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`);
   }
   
@@ -51,6 +55,16 @@ export async function fetchProducts(filters = {}) {
     query = in_stock 
       ? query.gt('stock', 0) 
       : query.eq('stock', 0);
+  }
+
+  // Filter for on_sale products
+  if (on_sale !== null) {
+    query = query.eq('on_sale', on_sale);
+  }
+
+  // Filter for featured products
+  if (featured !== null) {
+    query = query.eq('featured', featured);
   }
   
   // Apply sorting
