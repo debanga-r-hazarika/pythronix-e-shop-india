@@ -110,9 +110,19 @@ const FeaturedProducts = () => {
         
         <div className="mt-10 flex justify-center">
           <Button asChild>
-            <Link to="/products">
-              View All Products <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+            {activeTab === "featured" ? (
+              <Link to="/featured">
+                View All Featured Products <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            ) : activeTab === "sale" ? (
+              <Link to="/sale">
+                View All Sale Products <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            ) : (
+              <Link to="/products">
+                View All Products <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            )}
           </Button>
         </div>
       </div>

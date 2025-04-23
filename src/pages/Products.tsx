@@ -46,13 +46,14 @@ export default function Products() {
   
   // Filter states
   const [categoryId, setCategoryId] = useState<string | null>(searchParams.get('category'));
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // Initialize with default range
   const [minPriceValue, setMinPriceValue] = useState<string>("0");
-  const [maxPriceValue, setMaxPriceValue] = useState<string>("1000");
+  const [maxPriceValue, setMaxPriceValue] = useState<string>("10000"); // Start with high default
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string | null>(searchParams.get('search'));
   
   // Get all categories for the filter
   const { data: categories = [] } = useQuery({
@@ -70,19 +71,26 @@ export default function Products() {
       params.delete('category');
     }
     
+    if (searchQuery) {
+      params.set('search', searchQuery);
+    } else {
+      params.delete('search');
+    }
+    
     setSearchParams(params);
-  }, [categoryId, setSearchParams]);
+  }, [categoryId, searchQuery, setSearchParams]);
   
   // Get filtered products
   const { data: products = [], isLoading, refetch } = useQuery({
-    queryKey: ['products', { categoryId, priceRange, inStock, sortBy, sortOrder }],
+    queryKey: ['products', { categoryId, priceRange, inStock, sortBy, sortOrder, searchQuery }],
     queryFn: () => fetchProducts({
       category_id: categoryId,
       min_price: priceRange[0],
       max_price: priceRange[1],
       in_stock: inStock,
       sort_by: sortBy,
-      sort_order: sortOrder
+      sort_order: sortOrder,
+      search: searchQuery
     })
   });
   
@@ -96,25 +104,36 @@ export default function Products() {
   // Clear all filters
   const clearFilters = () => {
     setCategoryId(null);
-    setPriceRange([0, maxPrice || 1000]);
+    setPriceRange([0, maxPrice || 10000]);
     setMinPriceValue("0");
-    setMaxPriceValue(maxPrice ? maxPrice.toString() : "1000");
+    setMaxPriceValue(maxPrice ? maxPrice.toString() : "10000");
     setInStock(null);
     setSortBy("created_at");
     setSortOrder("desc");
+    setSearchQuery(null);
+    
+    // Update URL params
+    const params = new URLSearchParams(searchParams);
+    params.delete('category');
+    params.delete('search');
+    setSearchParams(params);
   };
 
   // Get max price for the slider
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(10000);
   useEffect(() => {
-    if (products.length > 0) {
+    if (products && products.length > 0) {
       const highestPrice = Math.max(
         ...products.map(p => p.original_price || p.price)
       );
-      setMaxPrice(Math.ceil(highestPrice / 100) * 100);
-      if (priceRange[1] === 1000) {
-        setPriceRange([0, highestPrice]);
-        setMaxPriceValue(highestPrice.toString());
+      // Set max price to the nearest 1000 above the highest product price
+      const roundedMaxPrice = Math.ceil(highestPrice / 1000) * 1000;
+      setMaxPrice(roundedMaxPrice);
+      
+      // Only update the price range if it's the initial load
+      if (priceRange[1] === 10000 && !searchParams.has('min_price') && !searchParams.has('max_price')) {
+        setPriceRange([0, roundedMaxPrice]);
+        setMaxPriceValue(roundedMaxPrice.toString());
       }
     }
   }, [products]);
@@ -140,7 +159,9 @@ export default function Products() {
         <div className="flex flex-col space-y-4">
           {/* Page Title and Filter Toggle */}
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900 font-heading">Products</h1>
+            <h1 className="text-3xl font-bold text-gray-900 font-heading">
+              {searchQuery ? `Search results for "${searchQuery}"` : "Products"}
+            </h1>
             <Button 
               variant="outline" 
               size="sm" 

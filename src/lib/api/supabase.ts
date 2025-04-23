@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export async function fetchProducts(filters = {}) {
@@ -7,7 +8,8 @@ export async function fetchProducts(filters = {}) {
     max_price = null,
     in_stock = null,
     sort_by = "created_at",
-    sort_order = "desc"
+    sort_order = "desc",
+    search = null
   } = filters as {
     category_id?: string | null;
     min_price?: number | null;
@@ -15,6 +17,7 @@ export async function fetchProducts(filters = {}) {
     in_stock?: boolean | null;
     sort_by?: string;
     sort_order?: "asc" | "desc";
+    search?: string | null;
   };
   
   let query = supabase
@@ -25,9 +28,15 @@ export async function fetchProducts(filters = {}) {
       secondary_categories:product_categories(category:categories(*))
     `);
   
-  // Apply category filter correctly using .or() method with proper syntax
+  // Apply category filter
   if (category_id) {
-    query = query.or(`category_id.eq.${category_id},secondary_categories.category_id.eq.${category_id}`);
+    // Fix the category filter - use correct OR filter syntax
+    query = query.or(`category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`);
+  }
+  
+  // Apply search filter if provided
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
   }
   
   if (min_price !== null) {
@@ -124,6 +133,20 @@ export async function fetchUserWishlist(userId) {
     `)
     .eq('user_id', userId);
     
+  if (error) throw error;
+  return data;
+}
+
+export async function searchProducts(query) {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      category:categories(*),
+      secondary_categories:product_categories(category:categories(*))
+    `)
+    .ilike('name', `%${query}%`);
+
   if (error) throw error;
   return data;
 }

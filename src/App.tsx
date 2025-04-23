@@ -12,6 +12,8 @@ import Products from "@/pages/Products";
 import ProductDetail from "@/pages/ProductDetail";
 import Categories from "@/pages/Categories";
 import NotFound from "@/pages/NotFound";
+import Sale from "@/pages/Sale";
+import FeaturedProducts from "@/pages/FeaturedProducts";
 
 // Admin routes
 import Admin from "@/pages/Admin";
@@ -36,6 +38,8 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/sale" element={<Sale />} />
+              <Route path="/featured" element={<FeaturedProducts />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />
