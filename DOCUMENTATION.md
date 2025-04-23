@@ -158,6 +158,13 @@ Admin access is verified by checking the `user_roles` table for a role of 'admin
 - **Banner Management**: Create promotional banners for the homepage
 - **User Management**: View and manage user accounts
 
+### Product Categories:
+
+Products can have multiple categories:
+- The primary category is stored in the `category_id` field of the `products` table
+- Additional categories are stored in the `product_categories` junction table
+- When filtering products by category, both primary and secondary categories are considered
+
 ## 6. Frontend Pages and Functionality
 
 The application is structured around several key pages:

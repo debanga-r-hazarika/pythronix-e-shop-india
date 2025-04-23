@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,12 +103,36 @@ export default function AdminProducts() {
     }
   };
 
-  const handleProductSaved = (savedProduct, isNew) => {
-    if (isNew) {
-      setProducts([savedProduct, ...products]);
-    } else {
-      setProducts(products.map(p => p.id === savedProduct.id ? savedProduct : p));
+  const handleProductSaved = async (savedProduct, isNew) => {
+    try {
+      // Fetch the complete product data with categories
+      const { data: refreshedProduct, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(*),
+          secondary_categories:product_categories(category:categories(*))
+        `)
+        .eq('id', savedProduct.id)
+        .single();
+        
+      if (error) throw error;
+      
+      if (isNew) {
+        setProducts([refreshedProduct, ...products]);
+      } else {
+        setProducts(products.map(p => p.id === refreshedProduct.id ? refreshedProduct : p));
+      }
+    } catch (error) {
+      console.error("Error refreshing product data:", error);
+      // Fallback to using the saved product directly
+      if (isNew) {
+        setProducts([savedProduct, ...products]);
+      } else {
+        setProducts(products.map(p => p.id === savedProduct.id ? savedProduct : p));
+      }
     }
+    
     setOpenDialog(false);
     setEditingProduct(null);
   };
@@ -130,11 +155,13 @@ export default function AdminProducts() {
                 {editingProduct ? "Edit Product" : "Add New Product"}
               </DialogTitle>
             </DialogHeader>
-            <ProductForm 
-              product={editingProduct} 
-              categories={categories} 
-              onSaved={handleProductSaved} 
-            />
+            <div className="max-h-[80vh] overflow-y-auto">
+              <ProductForm 
+                product={editingProduct} 
+                categories={categories} 
+                onSaved={handleProductSaved} 
+              />
+            </div>
           </DialogContent>
         </Dialog>
       </div>

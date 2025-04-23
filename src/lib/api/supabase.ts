@@ -28,7 +28,7 @@ export async function fetchProducts(filters = {}) {
   
   // Apply category filter correctly for both primary and secondary categories
   if (category_id) {
-    // Use separate or conditions with proper quotes around UUID values
+    // Use proper OR filter syntax for PostgREST
     query = query.or(`category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`);
   }
   

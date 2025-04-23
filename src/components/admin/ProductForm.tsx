@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -67,6 +68,11 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
     
     if (!name || !price) {
       toast.error("Name and price are required");
+      return;
+    }
+
+    if (selectedCategories.length === 0) {
+      toast.error("Please select at least one category");
       return;
     }
 
@@ -165,31 +171,31 @@ export default function ProductForm({ product, categories, onSaved }: ProductFor
         toast.success("Product created successfully");
       }
       
-      if (selectedCategories.length > 0) {
-        const { error: deleteError } = await supabase
+      // Always delete existing secondary categories and recreate them
+      const { error: deleteError } = await supabase
+        .from('product_categories')
+        .delete()
+        .eq('product_id', productId);
+        
+      if (deleteError) {
+        console.error("Error deleting existing secondary categories:", deleteError);
+        toast.error("Error updating secondary categories");
+      }
+      
+      // Add secondary categories (all categories except primary)
+      const secondaryCategoriesData = selectedCategories.slice(1).map(categoryId => ({
+        product_id: productId,
+        category_id: categoryId
+      }));
+      
+      if (secondaryCategoriesData.length > 0) {
+        const { error: categoryError } = await supabase
           .from('product_categories')
-          .delete()
-          .eq('product_id', productId);
+          .insert(secondaryCategoriesData);
           
-        if (deleteError) {
-          console.error("Error deleting existing secondary categories:", deleteError);
-          toast.error("Error updating secondary categories");
-        }
-        
-        const secondaryCategoriesData = selectedCategories.slice(1).map(categoryId => ({
-          product_id: productId,
-          category_id: categoryId
-        }));
-        
-        if (secondaryCategoriesData.length > 0) {
-          const { error: categoryError } = await supabase
-            .from('product_categories')
-            .insert(secondaryCategoriesData);
-            
-          if (categoryError) {
-            console.error("Error saving secondary categories:", categoryError);
-            toast.error("Product saved but there was an error with secondary categories");
-          }
+        if (categoryError) {
+          console.error("Error saving secondary categories:", categoryError);
+          toast.error("Product saved but there was an error with secondary categories");
         }
       }
       
