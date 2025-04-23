@@ -94,6 +94,12 @@ export default function Cart() {
     }, 700);
   };
 
+  const handleCheckout = () => {
+    // Here you would normally proceed to checkout
+    // For this demo, we'll just show a success message
+    toast.success("Proceeding to checkout...");
+  };
+
   if (!user) return null;
 
   return (
@@ -259,7 +265,8 @@ export default function Cart() {
                 </Link>
                 <Button
                   className="w-full bg-pythronix-blue hover:bg-pythronix-dark-blue"
-                  onClick={() => toast.info("Checkout is not implemented in this demo.")}
+                  onClick={handleCheckout}
+                  disabled={cartItems.length === 0}
                 >
                   Proceed to Checkout
                 </Button>

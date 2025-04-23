@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductById, addToWishlist, removeFromWishlist } from "@/lib/api/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import MainLayout from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { 
@@ -31,6 +33,7 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -53,6 +56,86 @@ const ProductDetail = () => {
       console.error(err);
     } finally {
       setIsAddingToWishlist(false);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast.error("Please login to add items to your cart");
+      return;
+    }
+
+    if (product?.stock <= 0) {
+      toast.error("Item is out of stock");
+      return;
+    }
+
+    try {
+      setIsAddingToCart(true);
+      
+      // Check if item already exists in cart
+      const { data: existingItem } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('product_id', id)
+        .maybeSingle();
+
+      if (existingItem) {
+        // Update quantity if item exists
+        const newQuantity = existingItem.quantity + quantity;
+        
+        if (newQuantity > product.stock) {
+          toast.error(`Cannot add more than ${product.stock} items due to stock limitations`);
+          setIsAddingToCart(false);
+          return;
+        }
+        
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ 
+            quantity: newQuantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingItem.id);
+
+        if (error) throw error;
+        toast.success("Item quantity updated in cart");
+      } else {
+        // Add new item if it doesn't exist
+        const { error } = await supabase
+          .from('cart_items')
+          .insert([
+            { 
+              user_id: user.id, 
+              product_id: id, 
+              quantity 
+            }
+          ]);
+
+        if (error) throw error;
+        toast.success("Item added to cart");
+      }
+    } catch (err) {
+      toast.error("Failed to add item to cart");
+      console.error(err);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!user) {
+      toast.error("Please login to buy this item");
+      return;
+    }
+    
+    try {
+      await handleAddToCart();
+      // Navigate to checkout page
+      window.location.href = "/cart";
+    } catch (err) {
+      console.error("Error with buy now:", err);
     }
   };
   
@@ -294,11 +377,21 @@ const ProductDetail = () => {
             </div>
             
             <div className="mt-8 flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
-              <Button className="flex-1" disabled={product.stock === 0} onClick={() => toast.success("Added to cart")}>
-                <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+              <Button 
+                className="flex-1" 
+                disabled={product.stock === 0 || isAddingToCart} 
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                {isAddingToCart ? "Adding..." : "Add to Cart"}
               </Button>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={product.stock === 0} onClick={() => toast.success("Proceeding to checkout")}>
-                <CreditCard className="mr-2 h-4 w-4" /> Buy Now
+              <Button 
+                className="flex-1 bg-green-600 hover:bg-green-700" 
+                disabled={product.stock === 0 || isAddingToCart} 
+                onClick={handleBuyNow}
+              >
+                <CreditCard className="mr-2 h-4 w-4" /> 
+                {isAddingToCart ? "Processing..." : "Buy Now"}
               </Button>
               <Button 
                 variant="outline" 

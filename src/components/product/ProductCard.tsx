@@ -1,7 +1,12 @@
+
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, ShoppingCart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
 interface ProductCardProps {
   product: {
     id: string;
@@ -14,8 +19,10 @@ interface ProductCardProps {
     review_count?: number;
     is_new: boolean;
     on_sale: boolean;
+    stock?: number;
   };
 }
+
 const ProductCard = ({
   product
 }: ProductCardProps) => {
@@ -29,8 +36,11 @@ const ProductCard = ({
     rating = 4.5,
     review_count = 0,
     is_new,
-    on_sale
+    on_sale,
+    stock = 0
   } = product;
+
+  const { user } = useAuth();
 
   // Format price to INR
   const formatPrice = (price: number) => {
@@ -40,6 +50,60 @@ const ProductCard = ({
       maximumFractionDigits: 0
     }).format(price);
   };
+
+  const addToCart = async () => {
+    if (!user) {
+      toast.error("Please login to add items to your cart");
+      return;
+    }
+
+    if (stock <= 0) {
+      toast.error("Item is out of stock");
+      return;
+    }
+
+    try {
+      // Check if item already exists in cart
+      const { data: existingItem } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('product_id', id)
+        .single();
+
+      if (existingItem) {
+        // Update quantity if item exists
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ 
+            quantity: existingItem.quantity + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingItem.id);
+
+        if (error) throw error;
+        toast.success("Item quantity updated in cart");
+      } else {
+        // Add new item if it doesn't exist
+        const { error } = await supabase
+          .from('cart_items')
+          .insert([
+            { 
+              user_id: user.id, 
+              product_id: id, 
+              quantity: 1 
+            }
+          ]);
+
+        if (error) throw error;
+        toast.success("Item added to cart");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add item to cart");
+    }
+  };
+
   return <div className="group relative overflow-hidden rounded-lg border bg-white transition-all duration-300 hover:shadow-lg">
       {/* Badges */}
       <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
@@ -90,7 +154,13 @@ const ProductCard = ({
                 Save {Math.round((original_price - price) / original_price * 100)}%
               </span>}
           </div>
-          <Button size="icon" aria-label="Add to cart" className="h-8 w-8 rounded-full bg-pythronix-blue hover:bg-pythronix-dark-blue">
+          <Button 
+            size="icon" 
+            aria-label="Add to cart" 
+            className="h-8 w-8 rounded-full bg-pythronix-blue hover:bg-pythronix-dark-blue"
+            onClick={addToCart}
+            disabled={stock <= 0}
+          >
             <ShoppingCart className="h-4 w-4" />
           </Button>
         </div>
