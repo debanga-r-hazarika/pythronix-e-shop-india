@@ -14,6 +14,8 @@ import Categories from "@/pages/Categories";
 import NotFound from "@/pages/NotFound";
 import Sale from "@/pages/Sale";
 import FeaturedProducts from "@/pages/FeaturedProducts";
+import Contact from "@/pages/Contact";
+import Terms from "@/pages/Terms";
 
 // Admin routes
 import Admin from "@/pages/Admin";
@@ -40,6 +42,8 @@ function App() {
               <Route path="/categories" element={<Categories />} />
               <Route path="/sale" element={<Sale />} />
               <Route path="/featured" element={<FeaturedProducts />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/terms" element={<Terms />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<Admin />} />

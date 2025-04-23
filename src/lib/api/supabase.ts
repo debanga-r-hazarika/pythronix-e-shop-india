@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export async function fetchProducts(filters = {}) {
@@ -32,12 +31,11 @@ export async function fetchProducts(filters = {}) {
       secondary_categories:product_categories(category:categories(*))
     `);
   
-  // Apply category filter - completely rewritten to fix the filtering issue
+  // Completely redesigned category filtering logic
   if (category_id) {
-    // First approach didn't work, completely rewriting the logic
-    query = query.or(
-      `category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`
-    );
+    // Create a query that checks both primary category and secondary categories
+    // Using separate OR condition for clarity
+    query = query.or(`category_id.eq.${category_id},secondary_categories.category_id.eq.${category_id}`);
   }
   
   // Apply search filter if provided
