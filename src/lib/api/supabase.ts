@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export async function fetchProducts(filters = {}) {
@@ -26,10 +25,9 @@ export async function fetchProducts(filters = {}) {
       secondary_categories:product_categories(category:categories(*))
     `);
   
-  // Apply category filter correctly for both primary and secondary categories
+  // Apply category filter correctly using .or() method with proper syntax
   if (category_id) {
-    // Use proper OR filter syntax for PostgREST
-    query = query.or(`category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`);
+    query = query.or(`category_id.eq.${category_id},secondary_categories.category_id.eq.${category_id}`);
   }
   
   if (min_price !== null) {

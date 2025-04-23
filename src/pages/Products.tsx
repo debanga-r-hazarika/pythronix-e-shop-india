@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -33,6 +34,11 @@ interface FilterProps {
   sortOrder?: string;
   setSortOrder?: (sortOrder: string) => void;
   clearFilters: () => void;
+  minPriceValue: string;
+  setMinPriceValue: (value: string) => void;
+  maxPriceValue: string;
+  setMaxPriceValue: (value: string) => void;
+  applyPriceFilter: () => void;
 }
 
 export default function Products() {
@@ -41,6 +47,8 @@ export default function Products() {
   // Filter states
   const [categoryId, setCategoryId] = useState<string | null>(searchParams.get('category'));
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [minPriceValue, setMinPriceValue] = useState<string>("0");
+  const [maxPriceValue, setMaxPriceValue] = useState<string>("1000");
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
@@ -78,10 +86,19 @@ export default function Products() {
     })
   });
   
+  // Apply price filter when user inputs custom values
+  const applyPriceFilter = () => {
+    const min = parseInt(minPriceValue) || 0;
+    const max = parseInt(maxPriceValue) || maxPrice;
+    setPriceRange([min, max]);
+  };
+  
   // Clear all filters
   const clearFilters = () => {
     setCategoryId(null);
-    setPriceRange([0, 1000]);
+    setPriceRange([0, maxPrice || 1000]);
+    setMinPriceValue("0");
+    setMaxPriceValue(maxPrice ? maxPrice.toString() : "1000");
     setInStock(null);
     setSortBy("created_at");
     setSortOrder("desc");
@@ -97,10 +114,20 @@ export default function Products() {
       setMaxPrice(Math.ceil(highestPrice / 100) * 100);
       if (priceRange[1] === 1000) {
         setPriceRange([0, highestPrice]);
+        setMaxPriceValue(highestPrice.toString());
       }
     }
   }, [products]);
   
+  // Update slider when input fields change
+  useEffect(() => {
+    const handlePriceRangeChange = () => {
+      setMinPriceValue(priceRange[0].toString());
+      setMaxPriceValue(priceRange[1].toString());
+    };
+    handlePriceRangeChange();
+  }, [priceRange]);
+
   return (
     <MainLayout>
       <div className="container py-8">
@@ -154,6 +181,11 @@ export default function Products() {
                     sortOrder={sortOrder}
                     setSortOrder={setSortOrder}
                     clearFilters={clearFilters}
+                    minPriceValue={minPriceValue}
+                    setMinPriceValue={setMinPriceValue}
+                    maxPriceValue={maxPriceValue}
+                    setMaxPriceValue={setMaxPriceValue}
+                    applyPriceFilter={applyPriceFilter}
                   />
                 </div>
               </div>
@@ -173,6 +205,11 @@ export default function Products() {
                   setInStock={setInStock}
                   maxPrice={maxPrice}
                   clearFilters={clearFilters}
+                  minPriceValue={minPriceValue}
+                  setMinPriceValue={setMinPriceValue}
+                  maxPriceValue={maxPriceValue}
+                  setMaxPriceValue={setMaxPriceValue}
+                  applyPriceFilter={applyPriceFilter}
                 />
               </div>
             </div>
@@ -251,7 +288,8 @@ export default function Products() {
 const MobileFilters = ({ 
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
   inStock, setInStock, maxPrice, sortBy, setSortBy,
-  sortOrder, setSortOrder, clearFilters
+  sortOrder, setSortOrder, clearFilters, minPriceValue, setMinPriceValue,
+  maxPriceValue, setMaxPriceValue, applyPriceFilter
 }: FilterProps) => {
   return (
     <div className="space-y-6">
@@ -300,14 +338,36 @@ const MobileFilters = ({
                   className="mt-6"
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="border rounded p-2 w-24 text-center text-sm">
-                  ${priceRange[0]}
+              <div className="flex items-center justify-between space-x-2">
+                <div className="w-full">
+                  <Label htmlFor="min-price-mobile" className="text-xs mb-1 block">Min Price</Label>
+                  <Input 
+                    id="min-price-mobile"
+                    type="number"
+                    value={minPriceValue}
+                    onChange={(e) => setMinPriceValue(e.target.value)}
+                    className="w-full"
+                  />
                 </div>
-                <div className="border rounded p-2 w-24 text-center text-sm">
-                  ${priceRange[1]}
+                <div className="w-full">
+                  <Label htmlFor="max-price-mobile" className="text-xs mb-1 block">Max Price</Label>
+                  <Input 
+                    id="max-price-mobile"
+                    type="number"
+                    value={maxPriceValue}
+                    onChange={(e) => setMaxPriceValue(e.target.value)}
+                    className="w-full"
+                  />
                 </div>
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full" 
+                onClick={applyPriceFilter}
+              >
+                Apply Price
+              </Button>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -361,7 +421,8 @@ const MobileFilters = ({
 // Desktop Filters Component
 const DesktopFilters = ({ 
   categories, categoryId, setCategoryId, priceRange, setPriceRange,
-  inStock, setInStock, maxPrice, clearFilters
+  inStock, setInStock, maxPrice, clearFilters, minPriceValue, setMinPriceValue,
+  maxPriceValue, setMaxPriceValue, applyPriceFilter
 }: FilterProps) => {
   return (
     <div className="space-y-6">
@@ -406,14 +467,36 @@ const DesktopFilters = ({
               className="mt-6"
             />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="border rounded p-2 w-20 text-center text-sm">
-              ${priceRange[0]}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="w-full">
+              <Label htmlFor="min-price" className="text-xs mb-1 block">Min Price</Label>
+              <Input 
+                id="min-price"
+                type="number" 
+                value={minPriceValue}
+                onChange={(e) => setMinPriceValue(e.target.value)}
+                className="w-full"
+              />
             </div>
-            <div className="border rounded p-2 w-20 text-center text-sm">
-              ${priceRange[1]}
+            <div className="w-full">
+              <Label htmlFor="max-price" className="text-xs mb-1 block">Max Price</Label>
+              <Input 
+                id="max-price"
+                type="number" 
+                value={maxPriceValue}
+                onChange={(e) => setMaxPriceValue(e.target.value)}
+                className="w-full"
+              />
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={applyPriceFilter}
+          >
+            Apply Price
+          </Button>
         </div>
       </div>
       
