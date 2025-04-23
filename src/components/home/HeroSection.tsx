@@ -47,7 +47,7 @@ const HeroSection = () => {
                 <Link to="/products">Browse Products</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
-                <Link to="/category/featured">
+                <Link to="/featured">
                   Featured Items <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

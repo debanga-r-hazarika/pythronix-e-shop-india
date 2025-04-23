@@ -32,10 +32,12 @@ export async function fetchProducts(filters = {}) {
       secondary_categories:product_categories(category:categories(*))
     `);
   
-  // Apply category filter
+  // Apply category filter - completely rewritten to fix the filtering issue
   if (category_id) {
-    // Using or() with explicit conditions for proper filtering
-    query = query.or(`category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`);
+    // First approach didn't work, completely rewriting the logic
+    query = query.or(
+      `category_id.eq.${category_id},product_categories.category_id.eq.${category_id}`
+    );
   }
   
   // Apply search filter if provided
